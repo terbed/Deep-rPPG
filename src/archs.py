@@ -269,3 +269,80 @@ class RateProbEst(nn.Module):
 
         # output shape [1, 1, 2]
         return x
+
+
+# -------------------------------------------------------------------------------------------------------------------
+# Rate estimator (simple point estimate)
+# -------------------------------------------------------------------------------------------------------------------
+class RateEst(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        avg_pool_kernel_size = 5
+        conv_kernel_size = 17
+        padn = 8
+
+        self.first_part = nn.Sequential(
+            nn.BatchNorm1d(1),
+            nn.Dropout(0.1),
+
+            nn.Conv1d(1, 32, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(32),
+            nn.ELU(),
+
+            nn.Dropout(0.1),
+            nn.Conv1d(32, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(64),
+            nn.ELU(),
+
+            nn.Dropout(0.1),
+            nn.Conv1d(64, 128, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.AvgPool1d(kernel_size=avg_pool_kernel_size, stride=2),
+            nn.BatchNorm1d(128),
+            nn.ELU()
+        )
+
+        input_count = 128
+        output_count = input_count
+        self.middle_part = nn.Sequential(
+            nn.Dropout(0.15),
+            nn.Conv1d(input_count, output_count, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(output_count),
+            nn.ELU(),
+
+            nn.Dropout(0.15),
+            nn.Conv1d(input_count, output_count, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(output_count),
+            nn.ELU(),
+
+            nn.Dropout(0.2),
+            nn.Conv1d(input_count, output_count, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(output_count),
+            nn.ELU(),
+
+            nn.Dropout(0.3),
+            nn.Conv1d(128, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(64),
+            nn.ELU(),
+
+            nn.Dropout(0.3),
+            nn.Conv1d(64, 32, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.AvgPool1d(kernel_size=avg_pool_kernel_size, stride=2),
+            nn.BatchNorm1d(32),
+            nn.ELU()
+        )
+
+        self.end_part = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Conv1d(32, 1, kernel_size=1, stride=1, padding=padn),
+            nn.AdaptiveAvgPool1d(output_size=1)
+        )
+
+    def forward(self, x):
+        x = x - torch.mean(x, dim=-1).unsqueeze(dim=-1)
+        x = self.first_part(x)
+        x = self.middle_part(x)
+        x = self.end_part(x)
+
+        # output shape [1, 1, 1]
+        return x

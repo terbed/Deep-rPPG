@@ -6,6 +6,7 @@ from PIL import Image
 import torch.nn.functional as F
 import h5py
 
+from yolo.detect import babybox
 from yolo.models import *
 from yolo.utils import *
 tr = torch
@@ -26,10 +27,11 @@ def load_input_hdf5(path, idx, device):
         frames = db['frames']
         print(f'Video shape: {frames.shape}')
         img = frames[idx, :, :, :]
+
         print(f'image shape: {img.shape}')
         inp = transforms.ToTensor()(img)
 
-        img = cv2.cvtColor(frames[idx, :, :, :].squeeze(), cv2.COLOR_RGB2BGR)
+        # img = cv2.cvtColor(frames[idx, :, :, :].squeeze(), cv2.COLOR_RGB2BGR)
 
         inp = F.interpolate(inp.unsqueeze(0), size=416, mode="nearest")
         inp = inp.type(tr.FloatTensor)
@@ -81,39 +83,17 @@ classes = load_classes(class_path)  # Extracts class labels from file
 for i in range(1, 128):
     img, inp = load_input_hdf5(root_hdf5+hdf5_path, i, device)
 
-    with tr.set_grad_enabled(False):
-        outputs = model(inp)
-        outputs = non_max_suppression(outputs, conf_thres, nms_thres)[0]
-    print(f'Output calculated! {outputs} ')
-
-    print(img.shape[:2])
-    detections = rescale_boxes(outputs, 416, img.shape[:2])
-    unique_labels = detections[:, -1].cpu().unique()
-    n_cls_preds = len(unique_labels)
+    x_1, y_1, x_2, y_2 = babybox(model, img, device)
 
     cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('frame', 500, 500)
+    img = cv2.rectangle(img, (x_1, y_1), (x_2, y_2), (0, 0, 0), 1)
+    cv2.imshow('frame', img)
 
-    if detections is not None:
-        x_1 = y_1 = x_2 = y_2 = 0
-        prev_conf = 0
-        for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
-            print("\t+ Label: %s, Conf: %.5f" % (classes[int(cls_pred)], cls_conf.item()))
-
-            box_w = x2 - x1
-            box_h = y2 - y1
-
-            # Crop baby
-            if classes[int(cls_pred)] == 'baby':
-                if prev_conf < cls_conf:
-                    prev_conf = cls_conf
-                    x_1, y_1, x_2, y_2 = x1, y1, x2, y2
-
-        img = cv2.rectangle(img, (x_1, y_1), (x_2, y_2), (0, 0, 0), 1)
-        cv2.imshow('frame', img)
-        cv2.waitKey(1)
-    else:
-        print('NO OBJECT WAS FOUND!!!')
+    cv2.namedWindow('cropped', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('cropped', 500, 500)
+    cv2.imshow('cropped', img[y_1:y_2, x_1:x_2, :])
+    cv2.waitKey(1)
 
 while cv2.waitKey(1) != 13:
     pass
