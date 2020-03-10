@@ -19,7 +19,7 @@ class NegPeaLoss(nn.Module):
         p_coeff = tr.sub(T * tr.sum(tr.mul(x, y), 1), tr.mul(tr.sum(x, 1), tr.sum(y, 1)))
         norm = tr.sqrt((T * tr.sum(x ** 2, 1) - tr.sum(x, 1) ** 2) * (T * tr.sum(y ** 2, 1) - tr.sum(y, 1) ** 2))
         p_coeff = tr.div(p_coeff, norm)
-        losses = 1 - p_coeff
+        losses = tr.tensor(1.) - p_coeff
         totloss = tr.mean(losses)
         return totloss
 
@@ -34,8 +34,8 @@ class SNRLoss(nn.Module):
             torch.backends.mkl.is_available()
 
         N = output.shape[-1]
-        pulse_band = tr.tensor([40, 250], dtype=tr.float32).to(device)
-        f = tr.linspace(0, Fs / 2, int(N / 2) + 1, dtype=tr.float32).to(device)
+        pulse_band = tr.tensor([40, 250], dtype=tr.float32)
+        f = tr.linspace(0, Fs / 2, int(N / 2) + 1, dtype=tr.float32)
 
         min_idx = tr.argmin(tr.abs(f - pulse_band[0] / 60))
         max_idx = tr.argmin(tr.abs(f - pulse_band[1] / 60))
