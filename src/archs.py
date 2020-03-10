@@ -346,3 +346,23 @@ class RateEst(nn.Module):
 
         # output shape [1, 1, 1]
         return x
+
+
+if __name__ == '__main__':
+    def deepphys_test():
+        model = DeepPhys()
+        A = tr.randn(1, 3, 36, 36)
+        out = model(A, A)
+        print(out.shape, out)
+
+    # deepphys_test()               # OK!
+
+    def physnet_test():
+        model = PhysNetED().to('cuda')
+        model.eval()
+        with tr.no_grad():
+            x = tr.rand(1, 3, 128, 128, 128).to('cuda')
+            out = model(x)
+        print(out.shape)
+
+    physnet_test()                  # OK!

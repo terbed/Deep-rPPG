@@ -10,6 +10,7 @@ def convert2cvimshow(img):
 
     return frame
 
+
 def physnet_dset_test(idx):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
