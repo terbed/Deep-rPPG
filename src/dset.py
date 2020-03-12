@@ -81,14 +81,14 @@ class Dataset4DFromHDF5(Dataset):
         else:
             self.begin = 0
 
-        print(f'Number of images in the dataset: {self.n}')
+        print(f'\nNumber of images in the dataset: {self.n}')
         print(f'Size of an image: {H} x {W} x {C}')
 
         self.num_samples = ((self.n - 64) // self.D) - 1
         print(f'Number of samples in the dataset: {self.num_samples}\n')
 
-    def __del__(self):
-        self.db.close()
+    # def __del__(self):
+    #     self.db.close()
 
     def __len__(self):
         return self.num_samples
@@ -245,13 +245,13 @@ class DatasetDeepPhysHDF5(Dataset):
         else:
             self.begin = 0
 
-        print(f'Number of images in the dataset: {self.n}')
+        print(f'\nNumber of images in the dataset: {self.n}')
         print(f'Size of an image: {H} x {W} x {C}')
 
         self.num_samples = self.n - 1 - shift
 
-    def __del__(self):
-        self.db.close()
+    # def __del__(self):
+    #     self.db.close()
 
     def __len__(self):
         return self.num_samples
