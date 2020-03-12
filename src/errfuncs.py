@@ -68,26 +68,59 @@ class SNRLoss(nn.Module):
         return tr.mean(losses)
 
 
-class NLPLoss(tr.nn.Module):
+class GaussLoss(nn.Module):
     """
-    Negative Log Probability loss
+    Loss for normal distribution (L2 like loss function)
     """
 
     def __init__(self):
         super().__init__()
 
-    def forward(self, targets: tr.Tensor, outputs: tr.Tensor) -> tr.Tensor:
+    def forward(self, outputs: tr.Tensor, targets: tr.Tensor) -> tr.Tensor:
         """
-        :param targets: tensor of shape: (batch_num, samples_num)
         :param outputs: tensor of shape: (batch_num, samples_num, density_parameters), density_parameters=2 -> mu, sigma
+        :param targets: tensor of shape: (batch_num, samples_num)
         :return: loss (scalar)
         """
 
-        batch_num = targets.shape[0]
-        mus = outputs[:, :, 0].reshape(batch_num, -1)
-        sigmas = outputs[:, :, 1].reshape(batch_num, -1)
+        mus = outputs[:, :, 0]
+        sigmas = outputs[:, :, 1]
+        s = tr.log(sigmas**2)
 
-        normal_dist = tr.distributions.normal.Normal(mus, sigmas)
-        losses = -1 * normal_dist.log_prob(targets)
+        losses = tr.exp(-1*s)*(targets-mus)**2 + s
 
-        return losses[~torch.isnan(losses)].mean()
+        return losses.mean()
+
+
+class LaplaceLoss(nn.Module):
+    """
+    Loss for Laplace distribution (L1 like loss function)
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, outputs: tr.Tensor, targets: tr.Tensor) -> tr.Tensor:
+        """
+        :param outputs: tensor of shape: (batch_num, samples_num, density_parameters), density_parameters=2 -> mu, b
+        :param targets: tensor of shape: (batch_num, samples_num)
+        :return: loss (scalar)
+        """
+
+        mus = outputs[:, :, 0]
+        bs = outputs[:, :, 1]
+        s = tr.log(bs)
+
+        losses = tr.exp(-1*s)*tr.abs(targets-mus) + s
+
+        return losses.mean()
+
+
+if __name__ == "__main__":
+
+    crit = LaplaceLoss()
+
+    outputs = tr.randn(12, 128, 2)
+    targets = tr.randn(12, 128)
+
+    print(crit(outputs, targets))
