@@ -4,7 +4,7 @@ import torch
 tr = torch
 
 
-def babybox(model, img, device):
+def babybox(model, img):
     """
         Returns bounding box of baby: x_1, y_1, x_2, y_2
     """
@@ -22,7 +22,6 @@ def babybox(model, img, device):
     inp = transforms.ToTensor()(img)
     inp = F.interpolate(inp.unsqueeze(0), size=416, mode="nearest")
     inp = inp.type(tr.FloatTensor)
-    inp = inp.to(device)
 
     # -----------------
     # Run network

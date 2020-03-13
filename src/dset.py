@@ -53,7 +53,7 @@ class Dataset4DFromHDF5(Dataset):
             model_def = 'yolo/config/yolov3-custom.cfg'
             weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
 
-            self.yolo = Darknet(model_def).to(device)
+            self.yolo = Darknet(model_def)
             self.yolo.load_state_dict(torch.load(weight_path))
             self.yolo.eval()
             print("YOLO network is initialized and ready to work!")
@@ -129,7 +129,7 @@ class Dataset4DFromHDF5(Dataset):
             # ------------------------------------------------------
             if self.crop:
                 first_frame = frames[self.begin + idx * self.D, :]
-                x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
+                x1, y1, x2, y2 = babybox(self.yolo, first_frame)
 
             # -------------------------------
             # Fill video with frames
@@ -194,7 +194,7 @@ class DatasetDeepPhysHDF5(Dataset):
         Dataset class for training network.
     """
 
-    def __init__(self, path : str, device, start=None, end=None, shift=0, crop=True, augment=False):
+    def __init__(self, path: str, device, start=None, end=None, shift=0, crop=True, augment=False):
         """
 
         :param path: Path to hdf5 file
@@ -224,7 +224,7 @@ class DatasetDeepPhysHDF5(Dataset):
             model_def = 'yolo/config/yolov3-custom.cfg'
             weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
 
-            self.yolo = Darknet(model_def).to(device)
+            self.yolo = Darknet(model_def)
             self.yolo.load_state_dict(torch.load(weight_path))
             self.yolo.eval()
             print("YOLO network is initialized and ready to work!")
@@ -287,7 +287,7 @@ class DatasetDeepPhysHDF5(Dataset):
         # Crop baby with yolo
         # ----------------------------
         if self.crop:
-            x1, y1, x2, y2 = babybox(self.yolo, img1, self.device)
+            x1, y1, x2, y2 = babybox(self.yolo, img1)
             img1 = img1[y1:y2, x1:x2, :]
             img2 = img2[y1:y2, x1:x2, :]
 
