@@ -220,14 +220,14 @@ class DatasetDeepPhysHDF5(Dataset):
         # -----------------------------
         # Init baby cropper
         # -----------------------------
-        # if crop:
-        #     model_def = 'yolo/config/yolov3-custom.cfg'
-        #     weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
-        #
-        #     self.yolo = Darknet(model_def)
-        #     self.yolo.load_state_dict(torch.load(weight_path))
-        #     self.yolo.eval()
-        #     print("YOLO network is initialized and ready to work!")
+        if crop:
+            model_def = 'yolo/config/yolov3-custom.cfg'
+            weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
+
+            self.yolo = Darknet(model_def).to(device)
+            self.yolo.load_state_dict(torch.load(weight_path))
+            self.yolo.eval()
+            print("YOLO network is initialized and ready to work!")
 
         self.db_path = path
         db = h5py.File(path, 'r')
@@ -287,14 +287,7 @@ class DatasetDeepPhysHDF5(Dataset):
         # Crop baby with yolo
         # ----------------------------
         if self.crop:
-            model_def = 'yolo/config/yolov3-custom.cfg'
-            weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
-
-            yolo = Darknet(model_def).to(self.device)
-            yolo.load_state_dict(torch.load(weight_path))
-            yolo.eval()
-            print("YOLO network is initialized and ready to work!")
-            x1, y1, x2, y2 = babybox(yolo, img1, self.device)
+            x1, y1, x2, y2 = babybox(self.yolo, img1, self.device)
             img1 = img1[y1:y2, x1:x2, :]
             img2 = img2[y1:y2, x1:x2, :]
 
