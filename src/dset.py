@@ -6,15 +6,12 @@ from torch.utils.data import Dataset
 import cv2
 import numpy as np
 import random
-import math
 from torchvision.transforms import RandomRotation, ToPILImage, ToTensor, ColorJitter
 import torchvision.transforms.functional as TF
 
 from yolo.detect import babybox
 from yolo.models import *
 from yolo.utils import *
-
-import h5py
 tr = torch
 
 
@@ -23,7 +20,7 @@ class Dataset4DFromHDF5(Dataset):
         Dataset class for PhysNet neural network.
     """
 
-    def __init__(self, path: str, labels: tuple, device, start=None, end=None, D=128, C=3, H=128, W=128, crop=True,
+    def __init__(self, db, labels: tuple, device, start=None, end=None, D=128, C=3, H=128, W=128, crop=True,
                  augment=False,  augment_freq=False):
         """
 
@@ -63,7 +60,7 @@ class Dataset4DFromHDF5(Dataset):
         # -----------------------------
         # Open database
         # -----------------------------
-        self.db = h5py.File(path, 'r')
+        self.db = db
         self.frames = self.db['frames']
         db_labels = self.db['references']
 
@@ -194,7 +191,7 @@ class DatasetDeepPhysHDF5(Dataset):
         Dataset class for training network.
     """
 
-    def __init__(self, path: str, device, start=None, end=None, shift=0, crop=True, augment=False):
+    def __init__(self, db, device, start=None, end=None, shift=0, crop=True, augment=False):
         """
 
         :param path: Path to hdf5 file
@@ -229,7 +226,7 @@ class DatasetDeepPhysHDF5(Dataset):
             self.yolo.eval()
             print("YOLO network is initialized and ready to work!")
 
-        self.db = h5py.File(path, 'r')
+        self.db = db
         self.frames = self.db['frames']
         db_labels = self.db['references']
 

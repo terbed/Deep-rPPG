@@ -7,6 +7,7 @@ from src.dset import *
 import os
 import sys
 import time
+import h5py
 import argparse
 
 import torch
@@ -110,6 +111,9 @@ if __name__ == '__main__':
                 print('Add another outout path then!')
                 exit(0)
 
+    # load database
+    db = h5py.File(args.data, 'r')
+
     # Add the following code anywhere in your machine learning file
     experiment = Experiment(api_key="hs2nruoKow2CnUKisoeHccvh7", project_name=args.logger_name, workspace="terbed")
 
@@ -150,7 +154,7 @@ if __name__ == '__main__':
         else:
             ref_type = 'PPGSignal'
 
-        trainset = Dataset4DFromHDF5(path=args.data,
+        trainset = Dataset4DFromHDF5(db,
                                      labels=(ref_type,),
                                      device=device,
                                      start=args.intervals[0], end=args.intervals[1],
@@ -158,7 +162,7 @@ if __name__ == '__main__':
                                      augment=args.img_augm,
                                      augment_freq=args.freq_augm)
 
-        testset = Dataset4DFromHDF5(path=args.data,
+        testset = Dataset4DFromHDF5(db,
                                     labels=(ref_type,),
                                     device=device,
                                     start=args.intervals[2], end=args.intervals[3],
@@ -168,14 +172,14 @@ if __name__ == '__main__':
 
     elif args.model == 'DeepPhys':
         phase_shift = args.intervals[4] if len(args.intervals) == 5 else 0            # init phase shift parameter
-        trainset = DatasetDeepPhysHDF5(path=args.data,
+        trainset = DatasetDeepPhysHDF5(db,
                                        device=device,
                                        start=args.intervals[0], end=args.intervals[1],
                                        shift=phase_shift,
                                        crop=args.crop,
                                        augment=args.img_augm)
 
-        testset = DatasetDeepPhysHDF5(path=args.data,
+        testset = DatasetDeepPhysHDF5(db,
                                       device=device,
                                       start=args.intervals[2], end=args.intervals[3],
                                       shift=phase_shift,
@@ -256,5 +260,7 @@ if __name__ == '__main__':
     # -----------------------------
     train_model(model, dataloaders, criterion=loss_fn, optimizer=opt, opath=args.checkpoint_dir, num_epochs=args.epochs)
 
-    print('\nTraining is finished!')
+    db.close()
     experiment.end()
+
+    print('\nTraining is finished without flaw!')
