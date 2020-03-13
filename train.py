@@ -111,9 +111,6 @@ if __name__ == '__main__':
                 print('Add another outout path then!')
                 exit(0)
 
-    # load database
-    db = h5py.File(args.data, 'r')
-
     # Add the following code anywhere in your machine learning file
     experiment = Experiment(api_key="hs2nruoKow2CnUKisoeHccvh7", project_name=args.logger_name, workspace="terbed")
 
@@ -154,7 +151,7 @@ if __name__ == '__main__':
         else:
             ref_type = 'PPGSignal'
 
-        trainset = Dataset4DFromHDF5(db,
+        trainset = Dataset4DFromHDF5(args.data,
                                      labels=(ref_type,),
                                      device=device,
                                      start=args.intervals[0], end=args.intervals[1],
@@ -162,7 +159,7 @@ if __name__ == '__main__':
                                      augment=args.img_augm,
                                      augment_freq=args.freq_augm)
 
-        testset = Dataset4DFromHDF5(db,
+        testset = Dataset4DFromHDF5(args.data,
                                     labels=(ref_type,),
                                     device=device,
                                     start=args.intervals[2], end=args.intervals[3],
@@ -260,7 +257,6 @@ if __name__ == '__main__':
     # -----------------------------
     train_model(model, dataloaders, criterion=loss_fn, optimizer=opt, opath=args.checkpoint_dir, num_epochs=args.epochs)
 
-    db.close()
     experiment.end()
 
     print('\nTraining is finished without flaw!')
