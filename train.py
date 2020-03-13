@@ -101,8 +101,14 @@ if __name__ == '__main__':
 
     # create output dir
     if args.checkpoint_dir:
-        os.makedirs(f'checkpoints/{args.checkpoint_dir}')
-        print("Output directory is created")
+        try:
+            os.makedirs(f'checkpoints/{args.checkpoint_dir}')
+            print("Output directory is created")
+        except FileExistsError:
+            reply = input('Override existing weights? [y/n]')
+            if reply == 'n':
+                print('Add another outout path then!')
+                exit(0)
 
     # Add the following code anywhere in your machine learning file
     experiment = Experiment(api_key="hs2nruoKow2CnUKisoeHccvh7", project_name=args.logger_name, workspace="terbed")
