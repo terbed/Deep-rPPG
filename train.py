@@ -36,6 +36,8 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
 
             # Iterate over data.
             for inputs, targets in dataloaders[phase]:
+                inputs = inputs.to(device)
+                targets = targets.to(device)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -87,7 +89,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
     parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--checkpoint_dir", type=str, help="checkpoints will be saved in this directory")
-    parser.add_argument('--n_cpu', type=int, default=0, help='number of cpu threads to use during generation')
+    parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
     parser.add_argument('--img_size', type=int, default=128, help='size of image')
     parser.add_argument('--time_depth', type=int, default=128, help='time depth for PhysNet')
     parser.add_argument('--lr', type=int, default=1e-4, help='learning rate')
@@ -181,12 +183,14 @@ if __name__ == '__main__':
     trainloader = DataLoader(trainset,
                              batch_size=args.batch_size,
                              shuffle=True,
-                             num_workers=args.n_cpu)
+                             num_workers=args.n_cpu,
+                             pin_memory=True)
 
     testloader = DataLoader(testset,
                             batch_size=args.batch_size,
                             shuffle=False,
-                            num_workers=args.n_cpu)
+                            num_workers=args.n_cpu,
+                            pin_memory=True)
 
     dataloaders = {'train': trainloader, 'val': testloader}
     print('\nDataLoaders succesfully constructed!')

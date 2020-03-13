@@ -119,7 +119,7 @@ class Dataset4DFromHDF5(Dataset):
         targets = []
         for label in self.labels:
             label_segment = label[self.begin + idx * self.D: self.begin + idx * self.D + self.D]
-            targets.append(tr.from_numpy(label_segment).type(tr.FloatTensor).to(self.device))
+            targets.append(tr.from_numpy(label_segment).type(tr.FloatTensor))
 
         # Construct networks input
         video = tr.empty(self.C, d, self.H, self.W, dtype=tr.float)
@@ -178,12 +178,12 @@ class Dataset4DFromHDF5(Dataset):
                         self.labels[counter][self.begin + idx * self.D: self.begin + idx * self.D + d])
                     resampler = torch.nn.Upsample(size=(self.D,), mode='linear')
                     segment = resampler(segment.view(1, 1, -1))
-                    segment = segment.squeeze().to(self.device)
+                    segment = segment.squeeze()
                     targets[counter] = segment
 
-            sample = (video.to(self.device), *targets)
+            sample = (video *targets)
         else:
-            sample = (video.to(self.device), *targets)
+            sample = (video, *targets)
 
         # Video shape: C x D x H X W
         return sample
@@ -273,7 +273,7 @@ class DatasetDeepPhysHDF5(Dataset):
                                                           hue=(0, 0))
 
         # Construct target signals
-        target = tr.tensor(self.label[idx]).to(self.device)
+        target = tr.tensor(self.label[idx])
 
         # Construct networks input
         A = tr.empty(self.C, self.H, self.W, dtype=tr.float)
@@ -328,7 +328,7 @@ class DatasetDeepPhysHDF5(Dataset):
         A = img1/255.  # convert image to [0, 1]
         A = tr.sub(A, tr.mean(A, (1, 2)).view(3, 1, 1))  # spatial intensity norm for each channel
 
-        sample = ((A.to(self.device), M.to(self.device)), target)
+        sample = ((A, M), target)
 
         # Video shape: C x D x H X W
         return sample
