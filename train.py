@@ -162,7 +162,7 @@ if __name__ == '__main__':
 
         trainset = Dataset4DFromHDF5(args.data,
                                      labels=(ref_type,),
-                                     device=device,
+                                     device=loader_device,
                                      start=args.intervals[0], end=args.intervals[1],
                                      crop=args.crop,
                                      augment=args.img_augm,
@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
         testset = Dataset4DFromHDF5(args.data,
                                     labels=(ref_type,),
-                                    device=device,
+                                    device=loader_device,
                                     start=args.intervals[2], end=args.intervals[3],
                                     crop=args.crop,
                                     augment=False,
@@ -179,14 +179,14 @@ if __name__ == '__main__':
     elif args.model == 'DeepPhys':
         phase_shift = args.intervals[4] if len(args.intervals) == 5 else 0            # init phase shift parameter
         trainset = DatasetDeepPhysHDF5(args.data,
-                                       device=device,
+                                       device=loader_device,
                                        start=args.intervals[0], end=args.intervals[1],
                                        shift=phase_shift,
                                        crop=args.crop,
                                        augment=args.img_augm)
 
         testset = DatasetDeepPhysHDF5(args.data,
-                                      device=device,
+                                      device=loader_device,
                                       start=args.intervals[2], end=args.intervals[3],
                                       shift=phase_shift,
                                       crop=args.crop,
