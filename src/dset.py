@@ -181,9 +181,9 @@ class Dataset4DFromHDF5(Dataset):
                     segment = segment.squeeze()
                     targets[counter] = segment
 
-            sample = (video *targets)
+            sample = ((video,), *targets)
         else:
-            sample = (video, *targets)
+            sample = ((video,), *targets)
 
         # Video shape: C x D x H X W
         return sample

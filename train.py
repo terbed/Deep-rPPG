@@ -37,7 +37,9 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
 
             # Iterate over data.
             for inputs, targets in dataloaders[phase]:
-                inputs = inputs.to(device)
+
+                for count, item in enumerate(inputs):
+                    inputs[count] = item.to(device)
                 targets = targets.to(device)
 
                 # zero the parameter gradients
