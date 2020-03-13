@@ -124,6 +124,7 @@ if __name__ == '__main__':
         "time_depth": args.time_depth,
         "img_size": args.img_size,
         "batch_size": args.batch_size,
+        "n_workers": args.n_cpu,
         "num_epochs": args.epochs,
         "learning_rate": args.lr,
         "database": args.data,
@@ -145,6 +146,12 @@ if __name__ == '__main__':
     # --------------------------------------
     # Dataset and dataloader construction
     # --------------------------------------
+    loader_device = None    # if multiple workers yolo works only on cpu
+    if args.n_cpu == 0:
+        loader_device = torch.device('cuda')
+    else:
+        loader_device = torch.device('cpu')
+
     testset = trainset = None
     if args.model == 'PhysNet':
         # chose label type for specific loss function
@@ -193,15 +200,13 @@ if __name__ == '__main__':
                              batch_size=args.batch_size,
                              shuffle=True,
                              num_workers=args.n_cpu,
-                             # pin_memory=True,
-                             worker_init_fn=torch.multiprocessing.spawn)
+                             pin_memory=True)
 
     testloader = DataLoader(testset,
                             batch_size=args.batch_size,
                             shuffle=False,
                             num_workers=args.n_cpu,
-                            # pin_memory=True,
-                            worker_init_fn=torch.multiprocessing.spawn)
+                            pin_memory=True)
 
     dataloaders = {'train': trainloader, 'val': testloader}
     print('\nDataLoaders succesfully constructed!')
