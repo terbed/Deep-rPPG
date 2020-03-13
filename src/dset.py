@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import Dataset
 import cv2
 import numpy as np
+import h5py
 import random
 from torchvision.transforms import RandomRotation, ToPILImage, ToTensor, ColorJitter
 import torchvision.transforms.functional as TF
@@ -20,7 +21,7 @@ class Dataset4DFromHDF5(Dataset):
         Dataset class for PhysNet neural network.
     """
 
-    def __init__(self, db, labels: tuple, device, start=None, end=None, D=128, C=3, H=128, W=128, crop=True,
+    def __init__(self, path: str, labels: tuple, device, start=None, end=None, D=128, C=3, H=128, W=128, crop=True,
                  augment=False,  augment_freq=False):
         """
 
@@ -60,17 +61,19 @@ class Dataset4DFromHDF5(Dataset):
         # -----------------------------
         # Open database
         # -----------------------------
-        self.db = db
-        self.frames = self.db['frames']
-        db_labels = self.db['references']
+        self.db_path = path
+        db = h5py.File(path, 'r')
+        frames = db['frames']
+        db_labels = db['references']
 
         # Append all required label from database
         self.labels = []
         self.label_names = labels
         for label in labels:
-            self.labels.append(db_labels[label])
+            self.labels.append(db_labels[label][:])
 
-        (self.n, H, W, C) = self.frames.shape
+        (self.n, H, W, C) = frames.shape
+        print(f'\nNumber of frames in the whole dataset: {self.n}')
 
         if start is not None:
             self.n = end - start
@@ -78,14 +81,12 @@ class Dataset4DFromHDF5(Dataset):
         else:
             self.begin = 0
 
-        print(f'\nNumber of images in the dataset: {self.n}')
+        print(f'\nNumber of images in the chosen interval: {self.n}')
         print(f'Size of an image: {H} x {W} x {C}')
 
         self.num_samples = ((self.n - 64) // self.D) - 1
         print(f'Number of samples in the dataset: {self.num_samples}\n')
-
-    # def __del__(self):
-    #     self.db.close()
+        db.close()
 
     def __len__(self):
         return self.num_samples
@@ -121,40 +122,42 @@ class Dataset4DFromHDF5(Dataset):
         # Construct networks input
         video = tr.empty(self.C, d, self.H, self.W, dtype=tr.float)
 
-        # ------------------------------------------------------
-        # Calculate bounding box for the baby for this segment
-        # ------------------------------------------------------
-        if self.crop:
-            first_frame = self.frames[self.begin + idx * self.D, :].copy()
-            x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
-
-        # -------------------------------
-        # Fill video with frames
-        # -------------------------------
-        # conv3d input: N x C x D x H X W
-        for i in range(d):
-            img = self.frames[self.begin + idx * self.D + i, :]
-            # Crop baby from image
+        with h5py.File(self.db_path, 'r') as db:
+            frames = db['frames']
+            # ------------------------------------------------------
+            # Calculate bounding box for the baby for this segment
+            # ------------------------------------------------------
             if self.crop:
-                img = img[y1:y2, x1:x2, :]
-            # Downsample cropped image
-            img = cv2.resize(img, (self.H, self.W), interpolation=cv2.INTER_AREA)
+                first_frame = frames[self.begin + idx * self.D, :]
+                x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
 
-            if self.augment:
-                # img = cv2.convertScaleAbs(img, alpha=(255.0 / np.max(img))) # convert to uint8
-                img = ToPILImage()(img)
-                if self.flip_p > 0.5:
-                    img = TF.vflip(img)
-                if self.flip_p > 0.5:
-                    img = TF.hflip(img)
-                # img = TF.rotate(img, self.rot)
-                img = self.color_transform(img)
-                img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
-            else:
-                img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
+            # -------------------------------
+            # Fill video with frames
+            # -------------------------------
+            # conv3d input: N x C x D x H X W
+            for i in range(d):
+                img = frames[self.begin + idx * self.D + i, :]
+                # Crop baby from image
+                if self.crop:
+                    img = img[y1:y2, x1:x2, :]
+                # Downsample cropped image
+                img = cv2.resize(img, (self.H, self.W), interpolation=cv2.INTER_AREA)
 
-            img = tr.sub(img, tr.mean(img, (1, 2)).view(3, 1, 1))  # Color channel centralization
-            video[:, i, :] = img
+                if self.augment:
+                    # img = cv2.convertScaleAbs(img, alpha=(255.0 / np.max(img))) # convert to uint8
+                    img = ToPILImage()(img)
+                    if self.flip_p > 0.5:
+                        img = TF.vflip(img)
+                    if self.flip_p > 0.5:
+                        img = TF.hflip(img)
+                    # img = TF.rotate(img, self.rot)
+                    img = self.color_transform(img)
+                    img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
+                else:
+                    img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
+
+                img = tr.sub(img, tr.mean(img, (1, 2)).view(3, 1, 1))  # Color channel centralization
+                video[:, i, :] = img
 
         # ------------------------------
         # Apply frequency augmentation
@@ -191,7 +194,7 @@ class DatasetDeepPhysHDF5(Dataset):
         Dataset class for training network.
     """
 
-    def __init__(self, db, device, start=None, end=None, shift=0, crop=True, augment=False):
+    def __init__(self, path : str, device, start=None, end=None, shift=0, crop=True, augment=False):
         """
 
         :param path: Path to hdf5 file
@@ -226,9 +229,10 @@ class DatasetDeepPhysHDF5(Dataset):
             self.yolo.eval()
             print("YOLO network is initialized and ready to work!")
 
-        self.db = db
-        self.frames = self.db['frames']
-        db_labels = self.db['references']
+        self.db_path = path
+        db = h5py.File(path, 'r')
+        frames = db['frames']
+        db_labels = db['references']
 
         # Create derivated ppg label
         ppg_label = db_labels['PPGSignal']
@@ -236,7 +240,7 @@ class DatasetDeepPhysHDF5(Dataset):
         refproc.calculate()
         self.label = refproc.training_label
 
-        (self.n, H, W, C) = self.frames.shape
+        (self.n, H, W, C) = frames.shape
 
         if start is not None:
             self.n = end - start
@@ -248,9 +252,7 @@ class DatasetDeepPhysHDF5(Dataset):
         print(f'Size of an image: {H} x {W} x {C}')
 
         self.num_samples = self.n - 1 - shift
-
-    # def __del__(self):
-    #     self.db.close()
+        db.close()
 
     def __len__(self):
         return self.num_samples
@@ -276,9 +278,10 @@ class DatasetDeepPhysHDF5(Dataset):
         A = tr.empty(self.C, self.H, self.W, dtype=tr.float)
         M = tr.empty(self.C, self.H, self.W, dtype=tr.float)
 
-        # conv2d input: N x C x H X W
-        img1 = self.frames[idx, :, :, :]
-        img2 = self.frames[idx + 1, :, :, :]
+        with h5py.File(self.db_path, 'r') as db:
+            frames = db['frames']
+            img1 = frames[idx, :, :, :]
+            img2 = frames[idx + 1, :, :, :]
 
         # ----------------------------
         # Crop baby with yolo
