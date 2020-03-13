@@ -193,15 +193,13 @@ if __name__ == '__main__':
                              batch_size=args.batch_size,
                              shuffle=True,
                              num_workers=args.n_cpu,
-                             pin_memory=True,
-                             worker_init_fn=torch.multiprocessing.spawn)
+                             pin_memory=True)
 
     testloader = DataLoader(testset,
                             batch_size=args.batch_size,
                             shuffle=False,
                             num_workers=args.n_cpu,
-                            pin_memory=True,
-                            worker_init_fn=torch.multiprocessing.spawn)
+                            pin_memory=True)
 
     dataloaders = {'train': trainloader, 'val': testloader}
     print('\nDataLoaders succesfully constructed!')
