@@ -19,9 +19,10 @@ def babybox(model, img, device):
     # ----------------------------
     # Construct input for network
     # ----------------------------
-    inp = transforms.ToTensor()(img).to(device)
+    inp = transforms.ToTensor()(img)
     inp = F.interpolate(inp.unsqueeze(0), size=416, mode="nearest")
     inp = inp.type(tr.FloatTensor)
+    inp = inp.to(device)
 
     # -----------------
     # Run network
