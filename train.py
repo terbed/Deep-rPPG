@@ -97,7 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('--time_depth', type=int, default=128, help='time depth for PhysNet')
     parser.add_argument('--lr', type=int, default=1e-4, help='learning rate')
     parser.add_argument('--crop', type=bool, default=True, help='crop baby with yolo (preprocessing step)')
-    parser.add_argument('--img_augm', type=bool, default=True, help='image augmentation (flip, color jitter)')
+    parser.add_argument('--img_augm', type=bool, default=False, help='image augmentation (flip, color jitter)')
     parser.add_argument('--freq_augm', type=bool, default=False, help='apply frequency augmentation')
 
     args = parser.parse_args()
