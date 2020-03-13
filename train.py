@@ -35,7 +35,7 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
                 model.eval()  # Set model to evaluate mode
 
             # Iterate over data.
-            for video, targets in dataloaders[phase]:
+            for inputs, targets in dataloaders[phase]:
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -43,7 +43,7 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
                 # forward
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(video).squeeze()
+                    outputs = model(*inputs).squeeze()
                     loss = criterion(outputs, targets)
 
                     # backward + optimize only if in training phase
@@ -70,8 +70,6 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
         torch.save(model.state_dict(), f'checkpoints/{opath}/ep_{epoch}.pt')
         print()
 
-    return model, val_loss_history, train_loss_history
-
 
 if __name__ == '__main__':
     # train on the GPU or on the CPU, if a GPU is not available
@@ -89,7 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
     parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
     parser.add_argument("--checkpoint_dir", type=str, help="checkpoints will be saved in this directory")
-    parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
+    parser.add_argument('--n_cpu', type=int, default=0, help='number of cpu threads to use during generation')
     parser.add_argument('--img_size', type=int, default=128, help='size of image')
     parser.add_argument('--time_depth', type=int, default=128, help='time depth for PhysNet')
     parser.add_argument('--lr', type=int, default=1e-4, help='learning rate')
@@ -97,26 +95,31 @@ if __name__ == '__main__':
     parser.add_argument('--img_augm', type=bool, default=True, help='image augmentation (flip, color jitter)')
     parser.add_argument('--freq_augm', type=bool, default=False, help='apply frequency augmentation')
 
-    opt = parser.parse_args()
+    args = parser.parse_args()
+
+    # create output dir
+    if args.checkpoint_dir:
+        os.makedirs(f'checkpoints/{args.checkpoint_dir}')
+        print("Output directory is created")
 
     # Add the following code anywhere in your machine learning file
-    experiment = Experiment(api_key="hs2nruoKow2CnUKisoeHccvh7", project_name=opt.logger_name, workspace="terbed")
+    experiment = Experiment(api_key="hs2nruoKow2CnUKisoeHccvh7", project_name=args.logger_name, workspace="terbed")
 
     hyper_params = {
-        "model": opt.model,
-        "pretrained_weights": opt.pretrained_weights,
-        "checkpoint_dir": opt.checkpoint_dir,
-        "loss_fn": opt.loss,
-        "time_depth": opt.time_depth,
-        "img_size": opt.img_size,
-        "batch_size": opt.batch_size,
-        "num_epochs": opt.epochs,
-        "learning_rate": opt.lr,
-        "database": opt.data,
-        "intervals": opt.intervals,
-        "crop": opt.crop,
-        "img_augm": opt.img_augm,
-        "freq_augm": opt.freq_augm
+        "model": args.model,
+        "pretrained_weights": args.pretrained_weights,
+        "checkpoint_dir": args.checkpoint_dir,
+        "loss_fn": args.loss,
+        "time_depth": args.time_depth,
+        "img_size": args.img_size,
+        "batch_size": args.batch_size,
+        "num_epochs": args.epochs,
+        "learning_rate": args.lr,
+        "database": args.data,
+        "intervals": args.intervals,
+        "crop": args.crop,
+        "img_augm": args.img_augm,
+        "freq_augm": args.freq_augm
     }
 
     experiment.log_parameters(hyper_params)
@@ -132,61 +135,58 @@ if __name__ == '__main__':
     # Dataset and dataloader construction
     # --------------------------------------
     testset = trainset = None
-    if opt.model == 'PhysNet':
+    if args.model == 'PhysNet':
         # chose label type for specific loss function
-        if opt.loss == 'SNR':
+        if args.loss == 'SNR':
             ref_type = 'PulseNumerical'
         else:
             ref_type = 'PPGSignal'
 
-        trainset = Dataset4DFromHDF5(path=opt.data,
+        trainset = Dataset4DFromHDF5(path=args.data,
                                      labels=(ref_type,),
                                      device=device,
-                                     start=opt.intervals[0], end=opt.intervals[1],
-                                     crop=opt.crop,
-                                     augment=opt.img_augm,
-                                     augment_freq=opt.freq_augm)
+                                     start=args.intervals[0], end=args.intervals[1],
+                                     crop=args.crop,
+                                     augment=args.img_augm,
+                                     augment_freq=args.freq_augm)
 
-        testset = Dataset4DFromHDF5(path=opt.data,
+        testset = Dataset4DFromHDF5(path=args.data,
                                     labels=(ref_type,),
                                     device=device,
-                                    start=opt.intervals[2], end=opt.intervals[3],
-                                    crop=opt.crop,
+                                    start=args.intervals[2], end=args.intervals[3],
+                                    crop=args.crop,
                                     augment=False,
                                     augment_freq=False)
 
-    elif opt.model == 'DeepPhys':
-        phase_shift = opt.intervals[4] if len(opt.intervals) == 5 else 0            # init phase shift parameter
-        trainset = DatasetDeepPhysHDF5(path=opt.data,
+    elif args.model == 'DeepPhys':
+        phase_shift = args.intervals[4] if len(args.intervals) == 5 else 0            # init phase shift parameter
+        trainset = DatasetDeepPhysHDF5(path=args.data,
                                        device=device,
-                                       start=opt.intervals[0], end=opt.intervals[1],
+                                       start=args.intervals[0], end=args.intervals[1],
                                        shift=phase_shift,
-                                       crop=opt.crop,
-                                       augment=opt.img_augm)
+                                       crop=args.crop,
+                                       augment=args.img_augm)
 
-        testset = DatasetDeepPhysHDF5(path=opt.data,
+        testset = DatasetDeepPhysHDF5(path=args.data,
                                       device=device,
-                                      start=opt.intervals[2], end=opt.intervals[3],
+                                      start=args.intervals[2], end=args.intervals[3],
                                       shift=phase_shift,
-                                      crop=opt.crop,
-                                      augment=opt.img_augm)
+                                      crop=args.crop,
+                                      augment=False)
     else:
         print('Error! No such model.')
         exit(666)
 
     # Construct DataLoaders
     trainloader = DataLoader(trainset,
-                             batch_size=opt.batch_size,
+                             batch_size=args.batch_size,
                              shuffle=True,
-                             num_workers=opt.n_cpu,
-                             pin_memory=True)
+                             num_workers=args.n_cpu)
 
     testloader = DataLoader(testset,
-                            batch_size=opt.batch_size,
+                            batch_size=args.batch_size,
                             shuffle=False,
-                            num_workers=opt.n_cpu,
-                            pin_memory=True
-                            )
+                            num_workers=args.n_cpu)
 
     dataloaders = {'train': trainloader, 'val': testloader}
     print('\nDataLoaders succesfully constructed!')
@@ -195,9 +195,9 @@ if __name__ == '__main__':
     # Load model
     # --------------------------
     model = None
-    if opt.model == 'DeepPhys':
+    if args.model == 'DeepPhys':
         model = DeepPhys()
-    elif opt.model == 'PhysNet':
+    elif args.model == 'PhysNet':
         model = PhysNetED()
     else:
         print('\nError! No such model. Choose from: DeepPhys, PhysNet')
@@ -209,13 +209,42 @@ if __name__ == '__main__':
         model = tr.nn.DataParallel(model)
 
     # If there are pretrained weights, initialize model
-    if opt.pretrained_weights:
-        model.load_state_dict(tr.load(opt.pretrained_weights))
+    if args.pretrained_weights:
+        model.load_state_dict(tr.load(args.pretrained_weights))
 
     # Copy model to working device
     model = model.to(device)
 
     # --------------------------
-    # TODO: Define loss function
+    # Define loss function
     # ---------------------------
+    # 'L1, MSE, NegPea, SNR, Gauss, Laplace'
+    loss_fn = None
+    if args.loss == 'L1':
+        loss_fn = nn.L1Loss()
+    elif args.loss == 'MSE':
+        loss_fn = nn.MSELoss()
+    elif args.loss == 'NegPea':
+        loss_fn = NegPeaLoss()
+    elif args.loss == 'SNR':
+        loss_fn = SNRLoss()
+    elif args.loss == 'Gauss':
+        loss_fn = GaussLoss()
+    elif args.loss == 'Laplace':
+        loss_fn = LaplaceLoss()
+    else:
+        print('\nError! No such loss function. Choose from: L1, MSE, NegPea, SNR, Gauss, Laplace')
+        exit(666)
 
+    # ----------------------------
+    # Initialize optimizer
+    # ----------------------------
+    opt = optim.AdamW(model.parameters(), lr=args.lr)
+
+    # -----------------------------
+    # Start training
+    # -----------------------------
+    train_model(model, dataloaders, criterion=loss_fn, optimizer=opt, opath=args.checkpoint_dir, num_epochs=args.epochs)
+
+    print('\nTraining is finished!')
+    experiment.end()

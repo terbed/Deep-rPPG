@@ -28,33 +28,29 @@ class SNRLoss(nn.Module):
     def __init__(self):
         super(SNRLoss, self).__init__()
 
-    def forward(self, output: tr.Tensor, target: tr.Tensor, Fs=20):
-        device = output.device
-        if not output.is_cuda:
+    def forward(self, outputs: tr.Tensor, targets: tr.Tensor, Fs=20):
+        """
+        :param outputs: network output of shape: (batch_size, signal_length)
+        :param targets: reference rate values: (batch_size, 1)
+        """
+        device = outputs.device
+        if not outputs.is_cuda:
             torch.backends.mkl.is_available()
 
-        N = output.shape[-1]
-        pulse_band = tr.tensor([40, 250], dtype=tr.float32)
+        N = outputs.shape[-1]
+        pulse_band = tr.tensor([40./60., 250./60.], dtype=tr.float32)
         f = tr.linspace(0, Fs / 2, int(N / 2) + 1, dtype=tr.float32)
 
-        min_idx = tr.argmin(tr.abs(f - pulse_band[0] / 60))
-        max_idx = tr.argmin(tr.abs(f - pulse_band[1] / 60))
+        min_idx = tr.argmin(tr.abs(f - pulse_band[0]))
+        max_idx = tr.argmin(tr.abs(f - pulse_band[1]))
 
-        # If there is no batch extend with fantom batch dimension
-        if len(output.size()) == 1:
-            output = output.unsqueeze(dim=0)
-            target = target.unsqueeze(dim=0)
-
-        X = tr.rfft(output, 1, normalized=True)
+        X = tr.rfft(outputs, 1, normalized=True)
         P1 = tr.add(X[:, :, 0] ** 2, X[:, :, 1] ** 2)  # One sided Power spectral density
-
-        # Select unique reference pulse rates in current time interval
-        refs = tr.mode(target)[0]
 
         # calculate indices corresponding to refs
         ref_idxs = []
-        for ref in refs:
-            ref_idxs.append(tr.argmin(tr.abs(f - ref / 60)))
+        for ref in targets:
+            ref_idxs.append(tr.argmin(tr.abs(f - ref)))
 
         # calc SNR for each batch
         losses = tr.empty((len(ref_idxs),), dtype=tr.float32)
@@ -118,9 +114,9 @@ class LaplaceLoss(nn.Module):
 
 if __name__ == "__main__":
 
-    crit = LaplaceLoss()
+    crit = SNRLoss()
 
-    outputs = tr.randn(12, 128, 2)
-    targets = tr.randn(12, 128)
+    outputs = tr.randn(12, 128)
+    targets = tr.randn(12, 1)
 
     print(crit(outputs, targets))

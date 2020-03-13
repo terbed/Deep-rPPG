@@ -119,7 +119,7 @@ class Dataset4DFromHDF5(Dataset):
         targets = []
         for label in self.labels:
             label_segment = label[self.begin + idx * self.D: self.begin + idx * self.D + self.D]
-            targets.append(tr.from_numpy(label_segment).to(self.device))
+            targets.append(tr.from_numpy(label_segment).type(tr.FloatTensor).to(self.device))
 
         # Construct networks input
         video = tr.empty(self.C, d, self.H, self.W, dtype=tr.float)
@@ -171,6 +171,8 @@ class Dataset4DFromHDF5(Dataset):
             for counter, name in enumerate(self.label_names):
                 if name == 'PulseNumerical':
                     targets[counter] = targets[counter] * self.freq_scale_fact
+                    # select the most frequent rate value for each batch and convert to Hz
+                    targets[counter] = tr.mode(targets[counter])[0] / 60.
                 elif name == 'PPGSignal':
                     segment = tr.from_numpy(
                         self.labels[counter][self.begin + idx * self.D: self.begin + idx * self.D + d])
@@ -326,7 +328,7 @@ class DatasetDeepPhysHDF5(Dataset):
         A = img1/255.  # convert image to [0, 1]
         A = tr.sub(A, tr.mean(A, (1, 2)).view(3, 1, 1))  # spatial intensity norm for each channel
 
-        sample = (A.to(self.device), M.to(self.device), target)
+        sample = ((A.to(self.device), M.to(self.device)), target)
 
         # Video shape: C x D x H X W
         return sample
