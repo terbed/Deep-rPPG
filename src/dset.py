@@ -306,18 +306,18 @@ class DatasetDeepPhysHDF5(Dataset):
             img1 = frames[idx, :, :, :]
             img2 = frames[idx + 1, :, :, :]
 
-        # ----------------------------
-        # Crop baby with yolo
-        # ----------------------------
-        if self.crop and self.is_bbox:
-            bbox = db['bbox'][idx, :]
-            y1, y2, x1, x2 = bbox[0], bbox[1], bbox[2], bbox[3]
-            img1 = img1[y1:y2, x1:x2, :]
-            img2 = img2[y1:y2, x1:x2, :]
-        elif self.crop and not self.is_bbox:
-            x1, y1, x2, y2 = babybox(self.yolo, img1, self.device)
-            img1 = img1[y1:y2, x1:x2, :]
-            img2 = img2[y1:y2, x1:x2, :]
+            # ----------------------------
+            # Crop baby with yolo
+            # ----------------------------
+            if self.crop and self.is_bbox:
+                bbox = db['bbox'][idx, :]
+                y1, y2, x1, x2 = bbox[0], bbox[1], bbox[2], bbox[3]
+                img1 = img1[y1:y2, x1:x2, :]
+                img2 = img2[y1:y2, x1:x2, :]
+            elif self.crop and not self.is_bbox:
+                x1, y1, x2, y2 = babybox(self.yolo, img1, self.device)
+                img1 = img1[y1:y2, x1:x2, :]
+                img2 = img2[y1:y2, x1:x2, :]
 
         # Downsample image
         img1 = cv2.resize(img1, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
