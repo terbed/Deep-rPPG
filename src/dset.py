@@ -135,11 +135,11 @@ class Dataset4DFromHDF5(Dataset):
             # Calculate bounding box for the baby for this segment
             # ------------------------------------------------------
             if self.crop and self.is_bbox:
-                bbox = db['bbox']
-                y1 = bbox[self.begin + idx * self.D, 0]
-                y2 = bbox[self.begin + idx * self.D, 1]
-                x1 = bbox[self.begin + idx * self.D, 2]
-                x2 = bbox[self.begin + idx * self.D, 3]
+                bbox = db['bbox'][self.begin + idx * self.D, :]
+                y1 = bbox[0]
+                y2 = bbox[1]
+                x1 = bbox[2]
+                x2 = bbox[3]
             elif self.crop and not self.is_bbox:
                 first_frame = frames[self.begin + idx * self.D, :]
                 x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
@@ -310,8 +310,8 @@ class DatasetDeepPhysHDF5(Dataset):
         # Crop baby with yolo
         # ----------------------------
         if self.crop and self.is_bbox:
-            bbox = db['bbox']
-            y1, y2, x1, x2 = bbox[idx, 0], bbox[idx, 1], bbox[idx, 2], bbox[idx, 3]
+            bbox = db['bbox'][idx, :]
+            y1, y2, x1, x2 = bbox[0], bbox[1], bbox[2], bbox[3]
             img1 = img1[y1:y2, x1:x2, :]
             img2 = img2[y1:y2, x1:x2, :]
         elif self.crop and not self.is_bbox:
