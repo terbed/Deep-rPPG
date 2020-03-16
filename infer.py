@@ -56,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument("--ofile_name", type=str, help="output file name")
     parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
     parser.add_argument('--crop', type=bool, default=True, help='crop baby with yolo (preprocessing step)')
+    parser.add_argument('--phase_shift', type=int, default=0, help='phase shift for reference signal')
 
     args = parser.parse_args()
 
@@ -84,10 +85,9 @@ if __name__ == '__main__':
                                     augment_freq=False)
 
     elif args.model == 'DeepPhys':
-        phase_shift = args.intervals[4] if len(args.intervals) == 5 else 0            # init phase shift parameter
         testset = DatasetDeepPhysHDF5(args.data,
                                       device=loader_device,
-                                      shift=phase_shift,
+                                      shift=args.phase_shift,
                                       crop=args.crop,
                                       augment=False)
     else:
