@@ -26,11 +26,13 @@ def eval_model(model, testloader, criterion, oname):
 
         with tr.no_grad():
             outputs = model(*inputs).squeeze()
+            print(f'outputs.shape: {outputs.shape}')
             loss = criterion(outputs, targets)
             print(f'Current loss: {loss}')
 
         # save network output
         for output in outputs:
+            print(f'output.shape: {output.shape}')
             result.extend(output.data.cpu().numpy().tolist())
             print(f'List length: {len(result)}')
 
