@@ -47,9 +47,24 @@ class Dataset4DFromHDF5(Dataset):
         self.freq_scale_fact = None
 
         # -----------------------------
+        # Open database
+        # -----------------------------
+        self.db_path = path
+        db = h5py.File(path, 'r')
+        frames = db['frames']
+        db_labels = db['references']
+
+        # check if there is bbox
+        keys = db.keys()
+        print(keys)
+        self.is_bbox = 'bbox' in keys
+        if self.is_bbox:
+            print('\nBounding boxes found in database, lets use them instead of YOLO!')
+
+        # -----------------------------
         # Init baby cropper
         # -----------------------------
-        if self.crop:
+        if self.crop and not self.is_bbox:
             model_def = 'yolo/config/yolov3-custom.cfg'
             weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
 
@@ -57,14 +72,6 @@ class Dataset4DFromHDF5(Dataset):
             self.yolo.load_state_dict(torch.load(weight_path))
             self.yolo.eval()
             print("YOLO network is initialized and ready to work!")
-
-        # -----------------------------
-        # Open database
-        # -----------------------------
-        self.db_path = path
-        db = h5py.File(path, 'r')
-        frames = db['frames']
-        db_labels = db['references']
 
         # Append all required label from database
         self.labels = []
@@ -127,7 +134,13 @@ class Dataset4DFromHDF5(Dataset):
             # ------------------------------------------------------
             # Calculate bounding box for the baby for this segment
             # ------------------------------------------------------
-            if self.crop:
+            if self.crop and self.is_bbox:
+                bbox = db['bbox'][self.begin + idx * self.D, :]
+                y1 = bbox[0]
+                y2 = bbox[1]
+                x1 = bbox[2]
+                x2 = bbox[3]
+            elif self.crop and not self.is_bbox:
                 first_frame = frames[self.begin + idx * self.D, :]
                 x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
 
@@ -217,10 +230,22 @@ class DatasetDeepPhysHDF5(Dataset):
         self.rot = None
         self.color_transform = None
 
+        self.db_path = path
+        db = h5py.File(path, 'r')
+        frames = db['frames']
+        db_labels = db['references']
+
+        # check if there is bbox
+        keys = db.keys()
+        print(keys)
+        self.is_bbox = 'bbox' in keys
+        if self.is_bbox:
+            print('\nBounding boxes found in database, lets use them instead of YOLO!')
+
         # -----------------------------
         # Init baby cropper
         # -----------------------------
-        if crop:
+        if crop and not self.is_bbox:
             model_def = 'yolo/config/yolov3-custom.cfg'
             weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
 
@@ -228,11 +253,6 @@ class DatasetDeepPhysHDF5(Dataset):
             self.yolo.load_state_dict(torch.load(weight_path))
             self.yolo.eval()
             print("YOLO network is initialized and ready to work!")
-
-        self.db_path = path
-        db = h5py.File(path, 'r')
-        frames = db['frames']
-        db_labels = db['references']
 
         # Create derivated ppg label
         ppg_label = db_labels['PPGSignal']
@@ -251,7 +271,10 @@ class DatasetDeepPhysHDF5(Dataset):
         print(f'\nNumber of images in the dataset: {self.n}')
         print(f'Size of an image: {H} x {W} x {C}')
 
-        self.num_samples = self.n - 1 - shift
+        # self.num_samples = self.n - 1 - shift
+        # To be in line with physnet
+        tmp = ((self.n - 64) // 128)
+        self.num_samples = tmp * 128 - 1 - shift
         db.close()
 
     def __len__(self):
@@ -265,7 +288,7 @@ class DatasetDeepPhysHDF5(Dataset):
             # Set up the same image transforms for the chunk
             self.flip_p = random.random()
             self.hflip_p = random.random()
-            self.rot = RandomRotation.get_params((0, 90))
+            # self.rot = RandomRotation.get_params((0, 90))
             self.color_transform = ColorJitter.get_params(brightness=(0.7, 1.3),
                                                           contrast=(0.8, 1.2),
                                                           saturation=(0.8, 1.2),
@@ -283,13 +306,18 @@ class DatasetDeepPhysHDF5(Dataset):
             img1 = frames[idx, :, :, :]
             img2 = frames[idx + 1, :, :, :]
 
-        # ----------------------------
-        # Crop baby with yolo
-        # ----------------------------
-        if self.crop:
-            x1, y1, x2, y2 = babybox(self.yolo, img1, self.device)
-            img1 = img1[y1:y2, x1:x2, :]
-            img2 = img2[y1:y2, x1:x2, :]
+            # ----------------------------
+            # Crop baby with yolo
+            # ----------------------------
+            if self.crop and self.is_bbox:
+                bbox = db['bbox'][idx, :]
+                y1, y2, x1, x2 = bbox[0], bbox[1], bbox[2], bbox[3]
+                img1 = img1[y1:y2, x1:x2, :]
+                img2 = img2[y1:y2, x1:x2, :]
+            elif self.crop and not self.is_bbox:
+                x1, y1, x2, y2 = babybox(self.yolo, img1, self.device)
+                img1 = img1[y1:y2, x1:x2, :]
+                img2 = img2[y1:y2, x1:x2, :]
 
         # Downsample image
         img1 = cv2.resize(img1, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
@@ -305,8 +333,8 @@ class DatasetDeepPhysHDF5(Dataset):
                 img1 = TF.hflip(img1)
                 img2 = TF.hflip(img2)
 
-            img1 = TF.rotate(img1, self.rot)
-            img2 = TF.rotate(img2, self.rot)
+            # img1 = TF.rotate(img1, self.rot)
+            # img2 = TF.rotate(img2, self.rot)
 
             img1 = self.color_transform(img1)
             img2 = self.color_transform(img2)
