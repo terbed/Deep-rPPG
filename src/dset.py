@@ -355,7 +355,7 @@ class DatasetDeepPhysHDF5(Dataset):
 
         # 2.) construct the normalized frame difference for motion stream input
         M = tr.div(img2 - img1, img1 + img2 + 1)         # +1 for numerical stability
-        M = tr.sub(M, tr.mean(M, (1, 2)).view(3, 1, 1))  # spatial intensity norm for each channel
+        # M = tr.sub(M, tr.mean(M, (1, 2)).view(3, 1, 1))  # spatial intensity norm for each channel
 
         A = img1/255.  # convert image to [0, 1]
         A = tr.sub(A, tr.mean(A, (1, 2)).view(3, 1, 1))  # spatial intensity norm for each channel
