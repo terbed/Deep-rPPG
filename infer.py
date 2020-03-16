@@ -118,7 +118,7 @@ if __name__ == '__main__':
         model = tr.nn.DataParallel(model)
 
     # If there are pretrained weights, initialize model
-    model.load_state_dict(tr.load(args.pretrained_weights))
+    model.load_state_dict(tr.load(args.weights))
 
     # Copy model to working device
     model = model.to(device)
