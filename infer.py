@@ -49,6 +49,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('model', type=str, help='DeepPhys, PhysNet')
+    parser.add_argument('loss', type=str, help='Loss function: L1, MSE, NegPea, SNR, Gauss, Laplace')
     parser.add_argument('data', type=str, help='path to .hdf5 file containing data')
     parser.add_argument("weights", type=str, help="if specified starts from checkpoint model")
 
