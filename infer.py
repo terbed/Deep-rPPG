@@ -28,13 +28,13 @@ def eval_model(model, testloader, criterion, oname):
             outputs = model(*inputs).squeeze()
             # print(f'outputs.shape: {outputs.shape}')
             loss = criterion(outputs, targets)
-            print(f'Current loss: {loss}')
+            print(f'Current loss: {loss.item()}')
 
         # save network output
         result.extend(outputs.data.cpu().numpy()[:].tolist())
         print(f'List length: {len(result)}')
 
-        total_loss.append(loss)
+        total_loss.append(loss.item())
 
     total_loss = np.nanmean(total_loss)
     print(f'\n------------------------\nTotal loss: {total_loss}\n-----------------------------')
