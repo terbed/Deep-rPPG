@@ -15,7 +15,7 @@ tr = torch
 
 
 def eval_model(model, testloader, criterion, oname):
-    total_loss = 0
+    total_loss = []
     result = []
     for inputs, targets in tqdm(testloader):
 
@@ -34,9 +34,9 @@ def eval_model(model, testloader, criterion, oname):
         result.extend(outputs.data.cpu().numpy()[:].tolist())
         print(f'List length: {len(result)}')
 
-        total_loss += loss
+        total_loss.append(loss)
 
-    total_loss /= len(testloader)
+    total_loss = np.nanmean(total_loss)
     print(f'\n------------------------\nTotal loss: {total_loss}\n-----------------------------')
     np.savetxt(f'outputs/{oname}', np.array(result))
     print('Result saved!')
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('model', type=str, help='DeepPhys, PhysNet')
-    parser.add_argument('loss', type=str, help='Loss function: L1, MSE, NegPea, SNR, Gauss, Laplace')
+    parser.add_argument('loss', type=str, help='Loss function: L1, RMSE, MSE, NegPea, SNR, Gauss, Laplace')
     parser.add_argument('data', type=str, help='path to .hdf5 file containing data')
     parser.add_argument("weights", type=str, help="if specified starts from checkpoint model")
 
