@@ -141,9 +141,15 @@ class Dataset4DFromHDF5(Dataset):
                 x1 = bbox[2]
                 x2 = bbox[3]
 
-                if y2 == 0 or x2 == 0:   # in this case the full img
+                # check to be inside image size
+                if y2 > self.H:
+                    y2 = self.H
+                if x2 > self.W:
+                    x2 = self.W
+                # check validity
+                if y2 - y1 <= 15 or x2 - x1 <= 15:
                     y1 = x1 = 0
-                    y2 = x2 = self.H
+                    y2, x2 = self.W, self.H
             elif self.crop and not self.is_bbox:
                 first_frame = frames[self.begin + idx * self.D, :]
                 x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
@@ -339,8 +345,10 @@ class DatasetDeepPhysHDF5(Dataset):
             img1 = cv2.resize(img1, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
             img2 = cv2.resize(img2, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
         except:
-            print('Usual cv empty error')
-            print(img1.shape, img2.shape)
+            print('\n--------- ERROR! -----------\nUsual cv empty error')
+            print(f'Shape of img1: {img1.shape}; Shape of im2: {img2.shape}')
+            print(f'bbox: {bbox}')
+            print(f'This is at idx: {idx}')
             exit(666)
 
         if self.augment:
