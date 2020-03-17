@@ -146,8 +146,12 @@ class Dataset4DFromHDF5(Dataset):
                     y2 = self.H
                 if x2 > self.W:
                     x2 = self.W
+                if y1 < 0:
+                    y1 = 0
+                if x1 < 0:
+                    x1 = 0
                 # check validity
-                if y2 - y1 <= 15 or x2 - x1 <= 15:
+                if y2 - y1 <= 1 or x2 - x1 <= 1:
                     y1 = x1 = 0
                     y2, x2 = self.W, self.H
             elif self.crop and not self.is_bbox:
@@ -328,8 +332,12 @@ class DatasetDeepPhysHDF5(Dataset):
                     y2 = img1.shape[0]
                 if x2 > img1.shape[1]:
                     x2 = img1.shape[1]
+                if y1 < 0:
+                    y1 = 0
+                if x1 < 0:
+                    x1 = 0
                 # check validity
-                if y2-y1 <= 15 or x2-x1 <= 15:
+                if y2-y1 <= 1 or x2-x1 <= 1:
                     y1 = x1 = 0
                     y2, x2 = img1.shape[:2]
 
