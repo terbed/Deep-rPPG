@@ -140,6 +140,10 @@ class Dataset4DFromHDF5(Dataset):
                 y2 = bbox[1]
                 x1 = bbox[2]
                 x2 = bbox[3]
+
+                if y2 == 0 or x2 == 0:   # in this case the full img
+                    y1 = x1 = 0
+                    y2 = x2 = self.H
             elif self.crop and not self.is_bbox:
                 first_frame = frames[self.begin + idx * self.D, :]
                 x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
@@ -312,7 +316,7 @@ class DatasetDeepPhysHDF5(Dataset):
             if self.crop and self.is_bbox:
                 bbox = db['bbox'][idx, :]
                 y1, y2, x1, x2 = bbox[0], bbox[1], bbox[2], bbox[3]
-                if y1 == y2 == 0 or x1 == x2 == 0:   # in this case the full img
+                if y2 == 0 or x2 == 0:   # in this case the full img
                     y1 = x1 = 0
                     y2 = x2 = img1.shape[1]
                 img1 = img1[y1:y2, x1:x2, :]
@@ -323,8 +327,13 @@ class DatasetDeepPhysHDF5(Dataset):
                 img2 = img2[y1:y2, x1:x2, :]
 
         # Downsample image
-        img1 = cv2.resize(img1, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
-        img2 = cv2.resize(img2, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
+        try:
+            img1 = cv2.resize(img1, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
+            img2 = cv2.resize(img2, (self.H, self.W), interpolation=cv2.INTER_CUBIC)
+        except:
+            print('Usual cv empty error')
+            print(img1.shape, img2.shape)
+            exit(666)
 
         if self.augment:
             img1 = ToPILImage()(img1)
