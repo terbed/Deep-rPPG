@@ -316,9 +316,16 @@ class DatasetDeepPhysHDF5(Dataset):
             if self.crop and self.is_bbox:
                 bbox = db['bbox'][idx, :]
                 y1, y2, x1, x2 = bbox[0], bbox[1], bbox[2], bbox[3]
-                if y2 == 0 or x2 == 0:   # in this case the full img
+                # in case of zero bbox give back the full image
+                if y2 == 0 or x2 == 0:
                     y1 = x1 = 0
-                    y2 = x2 = img1.shape[1]
+                    y2 = x2 = img1.shape[0]
+                # check to be inside image size
+                if y2 > img1.shape[0]:
+                    y2 = img1.shape[0]
+                if x2 > img1.shape[0]:
+                    x2 = img1.shape[0]
+
                 img1 = img1[y1:y2, x1:x2, :]
                 img2 = img2[y1:y2, x1:x2, :]
             elif self.crop and not self.is_bbox:
