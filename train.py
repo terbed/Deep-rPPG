@@ -6,6 +6,7 @@ from src.dset import *
 
 import os
 import argparse
+from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader
@@ -17,7 +18,7 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
     val_loss_history = []
     train_loss_history = []
 
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(num_epochs)):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
