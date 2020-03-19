@@ -27,17 +27,22 @@ def eval_model(model, testloader, criterion, oname):
         with tr.no_grad():
             outputs = model(*inputs).squeeze()
             # print(f'outputs.shape: {outputs.shape}')
-            loss = criterion(outputs, targets)
-            print(f'Current loss: {loss.item()}')
+
+            if criterion is not None:
+                loss = criterion(outputs, targets)
+                print(f'Current loss: {loss.item()}')
 
         # save network output
         result.extend(outputs.data.cpu().numpy()[:].tolist())
         print(f'List length: {len(result)}')
 
-        total_loss.append(loss.item())
+        if criterion is not None:
+            total_loss.append(loss.item())
 
-    total_loss = np.nanmean(total_loss)
-    print(f'\n------------------------\nTotal loss: {total_loss}\n-----------------------------')
+    if criterion is not None:
+        total_loss = np.nanmean(total_loss)
+        print(f'\n------------------------\nTotal loss: {total_loss}\n-----------------------------')
+
     np.savetxt(f'outputs/{oname}', np.array(result))
     print('Result saved!')
 
@@ -49,10 +54,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('model', type=str, help='DeepPhys, PhysNet')
-    parser.add_argument('loss', type=str, help='Loss function: L1, RMSE, MSE, NegPea, SNR, Gauss, Laplace')
     parser.add_argument('data', type=str, help='path to .hdf5 file containing data')
     parser.add_argument("weights", type=str, help="if specified starts from checkpoint model")
 
+    parser.add_argument('loss', type=str, default=None, help='Loss function: L1, RMSE, MSE, NegPea, SNR, Gauss, Laplace')
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
     parser.add_argument("--ofile_name", type=str, help="output file name")
     parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
@@ -144,7 +149,7 @@ if __name__ == '__main__':
         loss_fn = LaplaceLoss()
     else:
         print('\nError! No such loss function. Choose from: L1, MSE, NegPea, SNR, Gauss, Laplace')
-        exit(666)
+        print('Inference with no loss function')
 
     # -------------------------------
     # Evaluate model
