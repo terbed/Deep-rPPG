@@ -155,8 +155,10 @@ if __name__ == '__main__':
         # chose label type for specific loss function
         if args.loss == 'SNR':
             ref_type = 'PulseNumerical'
+            print('\nPulseNumerical reference type chosen!')
         else:
             ref_type = 'PPGSignal'
+            print('\nPPGSignal reference type chosen!')
 
         trainset = Dataset4DFromHDF5(args.data,
                                      labels=(ref_type,),

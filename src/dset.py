@@ -122,9 +122,14 @@ class Dataset4DFromHDF5(Dataset):
 
         # Construct target signals
         targets = []
-        for label in self.labels:
+        for count, label in enumerate(self.labels):
             label_segment = label[self.begin + idx * self.D: self.begin + idx * self.D + self.D]
-            targets.append(tr.from_numpy(label_segment).type(tr.FloatTensor))
+            label_segment = tr.from_numpy(label_segment).type(tr.FloatTensor)
+
+            if self.label_names[count] == 'PulseNumerical':
+                label_segment = tr.mode(label_segment)[0] / 60.
+
+            targets.append(label_segment)
 
         # Construct networks input
         video = tr.empty(self.C, d, self.H, self.W, dtype=tr.float)
