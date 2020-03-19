@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('data', type=str, help='path to .hdf5 file containing data')
     parser.add_argument("weights", type=str, help="if specified starts from checkpoint model")
 
-    parser.add_argument('loss', type=str, default=None, help='Loss function: L1, RMSE, MSE, NegPea, SNR, Gauss, Laplace')
+    parser.add_argument('--loss', type=str, default=None, help='Loss function: L1, RMSE, MSE, NegPea, SNR, Gauss, Laplace')
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
     parser.add_argument("--ofile_name", type=str, help="output file name")
     parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
