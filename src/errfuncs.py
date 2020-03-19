@@ -38,6 +38,9 @@ class SNRLoss(nn.Module):
             torch.backends.mkl.is_available()
 
         N = outputs.shape[-1]
+        targets = targets.view(-1, 1)
+        print(outputs.shape, targets.shape)
+
         pulse_band = tr.tensor([40./60., 250./60.], dtype=tr.float32)
         f = tr.linspace(0, Fs / 2, int(N / 2) + 1, dtype=tr.float32)
 
