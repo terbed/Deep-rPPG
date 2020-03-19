@@ -171,14 +171,12 @@ class Dataset4DFromHDF5(Dataset):
                 img = frames[self.begin + idx * self.D + i, :]
 
                 # convert to 8 bit if needed
-                print(f'img dtype: {img.dtype}')
-                if img.dtype is np.uint16:
+                if img.dtype is np.dtype(np.uint16):
                     if np.max(img[:]) < 4096:
                         scale = 4095.
                     else:
                         scale = 65535.
                     img = cv2.convertScaleAbs(img, alpha=(225./scale))
-                    print('converted!')
 
                 # Crop baby from image
                 if self.crop:
