@@ -15,6 +15,7 @@ def babybox(model, img, device):
     conf_thres = 0.8
     nms_thres = 0.4
     classes = ["baby", "nurse_hand", "parent_hand", "nursing_bottle"]
+    img_size = img.shape[0]
 
     # ----------------------------
     # Construct input for network
@@ -54,8 +55,22 @@ def babybox(model, img, device):
                     prev_conf = cls_conf
                     x_1, y_1, x_2, y_2 = round(x1.item()), round(y1.item()), round(x2.item()), round(y2.item())
 
+        # check to be inside image size boundaries
+        if y_2 > img_size:
+            y_2 = img_size
+        if x_2 > img_size:
+            x_2 = img_size
+        if y_1 < 0:
+            y_1 = 0
+        if x_1 < 0:
+            x_1 = 0
+        # check validity
+        if y_2 - y_1 < 1 or x_2 - x_1 < 1:
+            y_1 = x_1 = 0
+            y_2, x_2 = img_size
+
         return x_1, y_1, x_2, y_2
 
     else:
         print('NO OBJECT WAS FOUND!!!')
-        return None
+        return 0, 0, 128, 128  # return the full size
