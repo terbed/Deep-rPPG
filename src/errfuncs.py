@@ -41,8 +41,8 @@ class SNRLoss(nn.Module):
         targets = targets.view(-1, 1)
         print(outputs.shape, targets.shape)
 
-        pulse_band = tr.tensor([40./60., 250./60.], dtype=tr.float32)
-        f = tr.linspace(0, Fs / 2, int(N / 2) + 1, dtype=tr.float32)
+        pulse_band = tr.tensor([40./60., 250./60.], dtype=tr.float32).to(device)
+        f = tr.linspace(0, Fs / 2, int(N / 2) + 1, dtype=tr.float32).to(device)
 
         min_idx = tr.argmin(tr.abs(f - pulse_band[0]))
         max_idx = tr.argmin(tr.abs(f - pulse_band[1]))
