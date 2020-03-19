@@ -152,6 +152,7 @@ if __name__ == '__main__':
 
     testset = trainset = None
     if args.model == 'PhysNet':
+        print('Constructing data loader for PhysNet architecture...')
         # chose label type for specific loss function
         if args.loss == 'SNR':
             ref_type = 'PulseNumerical'

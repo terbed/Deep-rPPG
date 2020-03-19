@@ -169,6 +169,15 @@ class Dataset4DFromHDF5(Dataset):
             # conv3d input: N x C x D x H X W
             for i in range(d):
                 img = frames[self.begin + idx * self.D + i, :]
+
+                # convert to 8 bit if needed
+                if img.dtype is np.uint16:
+                    if np.max(img[:]) < 4096:
+                        scale = 4095.
+                    else:
+                        scale = 65535.
+                    img = cv2.convertScaleAbs(img, alpha=(225./scale))
+
                 # Crop baby from image
                 if self.crop:
                     img = img[y1:y2, x1:x2, :]
