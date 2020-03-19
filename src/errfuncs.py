@@ -99,6 +99,10 @@ class GaussLoss(nn.Module):
         :return: loss (scalar)
         """
 
+        n = targets.shape[-1]
+        outputs = outputs.view(-1, n, 2)
+        targets = targets.view(-1, n)
+
         mus = outputs[:, :, 0]
         sigmas = outputs[:, :, 1]
         s = tr.log(sigmas**2)
@@ -122,6 +126,10 @@ class LaplaceLoss(nn.Module):
         :param targets: tensor of shape: (batch_num, samples_num)
         :return: loss (scalar)
         """
+
+        n = targets.shape[-1]
+        outputs = outputs.view(-1, n, 2)
+        targets = targets.view(-1, n)
 
         mus = outputs[:, :, 0]
         bs = outputs[:, :, 1]
