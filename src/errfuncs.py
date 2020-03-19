@@ -62,9 +62,24 @@ class SNRLoss(nn.Module):
         freq_num_in_pulse_range = max_idx - min_idx
         for count, ref_idx in enumerate(ref_idxs):
             pulse_freq_amp = P1[count, ref_idx]
-            other_avrg = (tr.sum(P1[count, min_idx:ref_idx - 1]) + tr.sum(P1[count, ref_idx + 2:max_idx])) / (
-                        freq_num_in_pulse_range - 3)
-            losses[count] = -10 * tr.log10(pulse_freq_amp / other_avrg)
+
+            # Creating template for second and first harmonics pulse energy
+            u = tr.zeros(len(f))
+            u[ref_idx] = u[ref_idx*2] = 1
+            u[ref_idx-1] = u[ref_idx+1] = 0.8
+            u[(ref_idx-1)*2] = u[(ref_idx+1)*2] = 1
+            u = u.to(device)
+
+            # Creating template for noise energy in pulse band
+            w = tr.ones(len(f))
+            w[ref_idx-1:ref_idx+1] = w[(ref_idx-1)*2:(ref_idx+1)*2] = 0
+            w[0:min_idx] = w[max_idx:] = 0
+            w = w.to(device)
+
+            signal_energy = tr.sum(tr.mul(P1[count, :], u))
+            noise_energy = tr.sum(tr.mul(P1[count, :], w))
+
+            losses[count] = -10 * tr.log10(signal_energy / noise_energy)
 
         return tr.mean(losses)
 
@@ -121,7 +136,7 @@ if __name__ == "__main__":
 
     crit = SNRLoss()
 
-    outputs = tr.randn(12, 128)
-    targets = tr.randn(12, 1)
+    outputs = tr.randn(128)
+    targets = tr.randn(1)
 
     print(crit(outputs, targets))
