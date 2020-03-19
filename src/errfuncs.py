@@ -48,6 +48,7 @@ class SNRLoss(nn.Module):
         max_idx = tr.argmin(tr.abs(f - pulse_band[1]))
 
         X = tr.rfft(outputs, 1, normalized=True)
+        print(f'X.shape: {X.shape}')
         P1 = tr.add(X[:, :, 0] ** 2, X[:, :, 1] ** 2)  # One sided Power spectral density
 
         # calculate indices corresponding to refs
