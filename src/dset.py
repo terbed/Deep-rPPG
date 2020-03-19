@@ -178,6 +178,7 @@ class Dataset4DFromHDF5(Dataset):
                     else:
                         scale = 65535.
                     img = cv2.convertScaleAbs(img, alpha=(225./scale))
+                    print('converted!')
 
                 # Crop baby from image
                 if self.crop:
