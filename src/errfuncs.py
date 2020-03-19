@@ -66,7 +66,7 @@ class SNRLoss(nn.Module):
             # Creating template for second and first harmonics pulse energy
             u = tr.zeros(len(f))
             u[ref_idx] = u[ref_idx*2] = 1
-            u[ref_idx-1] = u[ref_idx+1] = 0.8
+            u[ref_idx-1] = u[ref_idx+1] = 0.5
             u[(ref_idx-1)*2] = u[(ref_idx+1)*2] = 1
             u = u.to(device)
 
