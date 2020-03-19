@@ -73,4 +73,4 @@ def babybox(model, img, device):
 
     else:
         print('NO OBJECT WAS FOUND!!!')
-        return 0, 0, 128, 128  # return the full size
+        return 0, 0, img_size, img_size  # return the full size
