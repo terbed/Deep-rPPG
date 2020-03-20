@@ -202,22 +202,20 @@ def eval_results_from_h5(path):
 
 
 if __name__ == '__main__':
-    # ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
-    #
-    # # est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
-    # # est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
-    #
-    # # est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
-    # est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
-    # est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
-    #
-    # #est6 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
-    # #est7 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
-    # est8 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
-    #
-    # print(est4.flatten().shape, est8.shape)
-    #
-    # eval_results(ref, (est4, est5, est8))
+    ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
 
-    eval_results_from_h5('eval_data.h5')
+    est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
+    est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
+
+    est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
+    est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
+    est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
+
+    est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
+    est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
+    est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
+
+    eval_results(ref, (est1, est2, est3, est4, est5, est6, est7, est8))
+
+    # eval_results_from_h5('eval_data.h5')
 
