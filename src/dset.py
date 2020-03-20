@@ -173,9 +173,9 @@ class Dataset4DFromHDF5(Dataset):
                 # convert to 8 bit if needed
                 if img.dtype is np.dtype(np.uint16):
                     if np.max(img[:]) < 4096:
-                        scale = 4095.
+                        scale = 4095.   # 12 bit
                     else:
-                        scale = 65535.
+                        scale = 65535.   # 16 bit
                     img = cv2.convertScaleAbs(img, alpha=(225./scale))
 
                 # Crop baby from image
@@ -185,7 +185,6 @@ class Dataset4DFromHDF5(Dataset):
                 img = cv2.resize(img, (self.H, self.W), interpolation=cv2.INTER_AREA)
 
                 if self.augment:
-                    # img = cv2.convertScaleAbs(img, alpha=(255.0 / np.max(img))) # convert to uint8
                     img = ToPILImage()(img)
                     if self.flip_p > 0.5:
                         img = TF.vflip(img)

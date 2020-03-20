@@ -67,12 +67,11 @@ class SNRLoss(nn.Module):
             u = tr.zeros(len(f))
             u[ref_idx] = u[ref_idx*2] = 1
             u[ref_idx-1] = u[ref_idx+1] = 0.5
-            u[(ref_idx-1)*2] = u[(ref_idx+1)*2] = 1
+            u[ref_idx*2 - 1] = u[ref_idx*2 + 1] = 0.8
             u = u.to(device)
 
             # Creating template for noise energy in pulse band
-            w = tr.ones(len(f))
-            w[ref_idx-1:ref_idx+1] = w[(ref_idx-1)*2:(ref_idx+1)*2] = 0
+            w = tr.tensor(1) - u
             w[0:min_idx] = w[max_idx:] = 0
             w = w.to(device)
 

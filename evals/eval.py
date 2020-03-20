@@ -2,7 +2,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import h5py
 from scipy.signal import butter, filtfilt
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, mode
+from tqdm import tqdm
 
 
 def butter_bandpass(lowcut, highcut, fs, order=3):
@@ -13,35 +14,134 @@ def butter_bandpass(lowcut, highcut, fs, order=3):
     return b, a
 
 
-def eval_ppg(ref, est, Fs=20, pulse_band=(80./60., 250./60.)):
+def eval_ppg(ref, ests: tuple, Fs=20, pulse_band=(50., 250.)):
     """
     Calculates statistics
 
     :param ref: reference numerical HR signal
-    :param est: the estimated ppg signal
+    :param ests: the estimated ppg signal
     :param Fs: sampling rate
     :param pulse_band: valid pulse range
     """
+    N = len(ests[-1].flatten())
+    L = (N-1)/Fs
+    t = np.linspace(0, L, N)/60/60
 
     stride = Fs     # 1 sec stride
     w = 512         # ~30 sec window (if Fs=20)
-    hamming = np.hamming(w)
+    hanning = np.hanning(w)
 
     # Calculating filter parameters
-    b, a = butter_bandpass(pulse_band[0], pulse_band[1], Fs, order=3)
+    b, a = butter_bandpass(pulse_band[0]/60., pulse_band[1]/60., Fs, order=3)
 
     # Frequency vector of the window
-    f = np.linspace(0, Fs/2, w//2-1)
+    f = np.linspace(0, Fs/2, w//2+1)*60.
 
     # Find indices corresponding to pulse boundaries
     min_pulse_idx = np.argmin(np.abs(f - pulse_band[0]))
     max_pulse_idx = np.argmin(np.abs(f - pulse_band[1]))
 
-    ref_list = []
-    est_list = []
-    n_segm = len(est - w) // stride
+    n_segm = len(ests[-1] - (w - stride)) // stride
+    n_est = len(ests)
+    n_segm = 1000  # For debug
+    ref_list = np.empty((1, n_segm), dtype=float)
+    est_list = np.empty((n_est, n_segm), dtype=float)
+    SNR_list = np.empty((n_est, n_segm), dtype=float)
 
-    for i in range(n_segm-1):
-        pass
+    for i in tqdm(range(n_segm)):
+        # Select the most frequent pulse value as reference
+        curr_ref = mode(ref[i*stride:i*stride+w])[0]
+        ref_idx = np.argmin(np.abs(f-curr_ref))
+        ref_list[0, i] = curr_ref
 
+        # Iterate through estimates
+        for count, est in enumerate(ests):
+            # Calculate estimated signal maximum component and SNR
+            est = est.flatten()
+            curr_res_seg = est[i * stride:i * stride + w]
+            # filter
+            curr_res_seg = filtfilt(b, a, curr_res_seg)
+            # windowing to eliminate leakage
+            curr_res_seg = np.multiply(curr_res_seg, hanning)
+            # calculate fft
+            freq_dom = np.fft.rfft(curr_res_seg)/len(curr_res_seg)
+            power_spect = np.abs(np.multiply(freq_dom, freq_dom.conj()))
+
+            max_idx = min_pulse_idx + np.argmax(power_spect[min_pulse_idx:max_pulse_idx])
+            est_pr = f[max_idx]
+            est_list[count, i] = est_pr
+
+            # Calculating SNR
+            u = np.zeros(len(power_spect))
+            u[ref_idx-2:ref_idx+3] = u[(ref_idx-2)*2:(ref_idx+3)*2] = 1
+
+            signal_energy = np.sum(np.multiply(power_spect, u))
+            noise_energy = np.sum(np.multiply(power_spect[min_pulse_idx:max_pulse_idx], (1-u)[min_pulse_idx:max_pulse_idx]))
+
+            snr = 10*np.log10(signal_energy/noise_energy)
+            SNR_list[count, i] = snr
+
+    # Calculate statistics
+    MAEs = np.mean(np.abs(np.subtract(ref_list, est_list)), axis=1)
+    RMSEs = np.sqrt(np.mean(np.subtract(ref_list, est_list)**2, axis=1))
+    MSEs = np.mean(np.subtract(ref_list, est_list)**2, axis=1)
+    MSNRs = np.mean(SNR_list, axis=1)
+
+    rs = np.empty((n_est, 1), dtype=float)
+    for count, est in enumerate(est_list):
+        rs[count] = pearsonr(ref_list.squeeze(), est)[0]
+
+    for i in range(n_est):
+        print(f'\n({i})th statistics')
+        print(f'MAE: {MAEs[i]}')
+        print(f'RMSE: {RMSEs[i]}')
+        print(f'MSE: {MSEs[i]}')
+        print(f'Pearson r: {rs[i]}')
+        print(f'MSNR: {MSNRs[i]}')
+        print('-------------------------------------------------')
+
+    # -------------------------------
+    # Visualizations
+    # -------------------------------
+    # Plot signal waveform
+    plt.figure(figsize=(12, 6))
+    for i in range(n_est):
+        tmp = ests[i].flatten()[:w]
+        plt.plot(t[:w], tmp[:w], label=f'{i}th result')
+    plt.xlabel('Time [h]')
+    plt.title('Estimated signal form')
+    plt.legend()
+    plt.show()
+
+    # Plot pulse rates
+    tt = [x/60./60. for x in range(est_list.shape[-1])]
+    plt.figure(figsize=(12, 6))
+    plt.plot(tt, ref_list[0, :len(tt)], color='k', label='reference')
+    for i in range(n_est):
+        plt.plot(tt, est_list[i], label=f'{i}th result')
+    plt.grid()
+    plt.xlabel('Time [h]')
+    plt.ylabel('PR [BPM]')
+    plt.title('Estimated and reference PR values by different models')
+    plt.legend(loc='best')
+    plt.show()
+
+
+if __name__ == '__main__':
+    ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
+
+    # est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
+    # est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
+
+    # est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
+    est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
+    est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
+
+    #est6 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
+    #est7 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
+    est8 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
+
+    print(est4.flatten().shape, est8.shape)
+
+    eval_ppg(ref, (est4, est5, est8))
 
