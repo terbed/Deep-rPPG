@@ -14,7 +14,7 @@ def butter_bandpass(lowcut, highcut, fs, order=3):
     return b, a
 
 
-def eval_ppg(ref, ests: tuple, Fs=20, pulse_band=(50., 250.)):
+def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False):
     """
     Calculates statistics
 
@@ -43,7 +43,6 @@ def eval_ppg(ref, ests: tuple, Fs=20, pulse_band=(50., 250.)):
 
     n_segm = len(ests[-1] - (w - stride)) // stride
     n_est = len(ests)
-    n_segm = 1000  # For debug
     ref_list = np.empty((1, n_segm), dtype=float)
     est_list = np.empty((n_est, n_segm), dtype=float)
     SNR_list = np.empty((n_est, n_segm), dtype=float)
@@ -73,13 +72,85 @@ def eval_ppg(ref, ests: tuple, Fs=20, pulse_band=(50., 250.)):
 
             # Calculating SNR
             u = np.zeros(len(power_spect))
-            u[ref_idx-2:ref_idx+3] = u[(ref_idx-2)*2:(ref_idx+3)*2] = 1
+            u[ref_idx-2:ref_idx+3] = u[ref_idx*2-2:ref_idx*2+3] = 1
 
             signal_energy = np.sum(np.multiply(power_spect, u))
             noise_energy = np.sum(np.multiply(power_spect[min_pulse_idx:max_pulse_idx], (1-u)[min_pulse_idx:max_pulse_idx]))
 
             snr = 10*np.log10(signal_energy/noise_energy)
             SNR_list[count, i] = snr
+
+    # Save results
+    ests_arr = np.empty((n_est, N))
+    for i, e in enumerate(ests):
+        ests_arr[i, :] = e.flatten()[:N]
+    with h5py.File('eval_data.h5', 'w') as db:
+        db.create_dataset('ref_orig', shape=ref.shape, dtype=np.float32, data=ref)
+        db.create_dataset('ests', shape=ests_arr.shape, dtype=np.float32, data=ests_arr)
+        db.create_dataset('ref_list', shape=ref_list.shape, dtype=np.float32, data=ref_list)
+        db.create_dataset('est_list', shape=est_list.shape, dtype=np.float32, data=est_list)
+        db.create_dataset('SNR_list', shape=SNR_list.shape, dtype=np.float32, data=SNR_list)
+
+    # Calculate statistics
+    MAEs = np.mean(np.abs(np.subtract(ref_list, est_list)), axis=1)
+    RMSEs = np.sqrt(np.mean(np.subtract(ref_list, est_list)**2, axis=1))
+    MSEs = np.mean(np.subtract(ref_list, est_list)**2, axis=1)
+    MSNRs = np.mean(SNR_list, axis=1)
+
+    rs = np.empty((n_est, 1), dtype=float)
+    for count, est in enumerate(est_list):
+        rs[count] = pearsonr(ref_list.squeeze(), est)[0]
+
+    for i in range(n_est):
+        print(f'\n({i})th statistics')
+        print(f'MAE: {MAEs[i]}')
+        print(f'RMSE: {RMSEs[i]}')
+        print(f'MSE: {MSEs[i]}')
+        print(f'Pearson r: {rs[i]}')
+        print(f'MSNR: {MSNRs[i]}')
+        print('-------------------------------------------------')
+
+    # -------------------------------
+    # Visualizations
+    # -------------------------------
+    if is_plot:
+        # Plot signal waveform
+        plt.figure(figsize=(12, 6))
+        for i in range(n_est):
+            tmp = ests[i].flatten()[:w]
+            plt.plot(t[:w], tmp[:w], label=f'{i}th result')
+        plt.xlabel('Time [h]')
+        plt.title('Estimated signal form')
+        plt.legend()
+        plt.show()
+
+        # Plot pulse rates
+        tt = [x/60./60. for x in range(est_list.shape[-1])]
+        plt.figure(figsize=(12, 6))
+        plt.plot(tt, ref_list[0, :len(tt)], color='k', label='reference')
+        for i in range(n_est):
+            plt.plot(tt, est_list[i], label=f'{i}th result')
+        plt.grid()
+        plt.xlabel('Time [h]')
+        plt.ylabel('PR [BPM]')
+        plt.title('Estimated and reference PR values by different models')
+        plt.legend(loc='best')
+        plt.show()
+
+
+def eval_results_from_h5(path):
+    with h5py.File(path, 'r') as db:
+        ref_list = db['ref_list'][:]
+        est_list = db['est_list'][:]
+        ests = db['ests'][:]
+        SNR_list = db['SNR_list'][:]
+
+    Fs = 20
+    w = 512
+    n_est = len(ests)
+    N = len(ests[-1].flatten())
+    L = (N-1)/Fs
+    t = np.linspace(0, L, N)/60/60
 
     # Calculate statistics
     MAEs = np.mean(np.abs(np.subtract(ref_list, est_list)), axis=1)
@@ -104,10 +175,13 @@ def eval_ppg(ref, ests: tuple, Fs=20, pulse_band=(50., 250.)):
     # Visualizations
     # -------------------------------
     # Plot signal waveform
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 10))
+
+    shift = 0
     for i in range(n_est):
-        tmp = ests[i].flatten()[:w]
-        plt.plot(t[:w], tmp[:w], label=f'{i}th result')
+        tmp = ests[i, :].flatten()[:w]
+        tmp = (tmp-np.mean(tmp))/np.std(tmp)
+        plt.plot(t[:w], tmp[:w]+i*5, label=f'{i}th result')
     plt.xlabel('Time [h]')
     plt.title('Estimated signal form')
     plt.legend()
@@ -116,9 +190,9 @@ def eval_ppg(ref, ests: tuple, Fs=20, pulse_band=(50., 250.)):
     # Plot pulse rates
     tt = [x/60./60. for x in range(est_list.shape[-1])]
     plt.figure(figsize=(12, 6))
-    plt.plot(tt, ref_list[0, :len(tt)], color='k', label='reference')
+    plt.plot(tt, ref_list[0, :len(tt)], color='k', label='reference', linewidth=2.)
     for i in range(n_est):
-        plt.plot(tt, est_list[i], label=f'{i}th result')
+        plt.plot(tt, est_list[i], label=f'{i}th result', alpha=0.9)
     plt.grid()
     plt.xlabel('Time [h]')
     plt.ylabel('PR [BPM]')
@@ -128,20 +202,22 @@ def eval_ppg(ref, ests: tuple, Fs=20, pulse_band=(50., 250.)):
 
 
 if __name__ == '__main__':
-    ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
+    # ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
+    #
+    # # est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
+    # # est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
+    #
+    # # est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
+    # est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
+    # est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
+    #
+    # #est6 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
+    # #est7 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
+    # est8 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
+    #
+    # print(est4.flatten().shape, est8.shape)
+    #
+    # eval_results(ref, (est4, est5, est8))
 
-    # est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
-    # est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
-
-    # est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
-    est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
-    est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
-
-    #est6 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
-    #est7 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
-    est8 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
-
-    print(est4.flatten().shape, est8.shape)
-
-    eval_ppg(ref, (est4, est5, est8))
+    eval_results_from_h5('eval_data.h5')
 
