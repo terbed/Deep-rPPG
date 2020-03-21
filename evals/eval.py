@@ -41,8 +41,7 @@ def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False)
     min_pulse_idx = np.argmin(np.abs(f - pulse_band[0]))
     max_pulse_idx = np.argmin(np.abs(f - pulse_band[1]))
 
-    n_segm = len(ests[-1] - (w - stride)) // stride
-    n_segm = 1000  # for debug
+    n_segm = len(ests[-1] - w) // stride
     n_est = len(ests)
     ref_list = np.empty((1, n_segm), dtype=float)
     est_list = np.empty((n_est, n_segm), dtype=float)
@@ -182,7 +181,7 @@ def eval_results_from_h5(path):
     for i in range(n_est):
         tmp = ests[i, :].flatten()[:w]
         tmp = (tmp-np.mean(tmp))/np.std(tmp)
-        plt.plot(t[:w], tmp[:w]+i*5, label=f'{i}th result')
+        plt.plot(t[:w], tmp[:w]+(n_est-i)*5, label=f'{i}th result')
     plt.xlabel('Time [h]')
     plt.title('Estimated signal form')
     plt.legend()
@@ -190,15 +189,17 @@ def eval_results_from_h5(path):
 
     # Plot pulse rates
     tt = [x/60./60. for x in range(est_list.shape[-1])]
-    plt.figure(figsize=(12, 6))
-    plt.plot(tt, ref_list[0, :len(tt)], color='k', label='reference', linewidth=2.)
-    for i in range(n_est):
-        plt.plot(tt, est_list[i], label=f'{i}th result', alpha=0.9)
-    plt.grid()
-    plt.xlabel('Time [h]')
-    plt.ylabel('PR [BPM]')
-    plt.title('Estimated and reference PR values by different models')
-    plt.legend(loc='best')
+
+    _, axs = plt.subplots(n_est, 1, figsize=(12, 10))
+    for i, ax in enumerate(axs):
+        ax.plot(tt, ref_list[0, :len(tt)], color='k', label='reference', linewidth=2.)
+        ax.plot(tt, est_list[i], 'r--', label=f'{i}th result')
+        ax.grid()
+        ax.set_xlabel('Time [h]')
+        ax.set_ylabel('PR [BPM]')
+        ax.set_ylim(80, 250)
+        ax.legend(loc='upper right')
+    plt.subplots_adjust(hspace=1)
     plt.show()
 
 
@@ -213,10 +214,10 @@ if __name__ == '__main__':
     est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
 
     est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
-    est7 = np.loadtxt('../outputs/pn191111snr_imgaugm_crop-benchmark_minden.dat')
+    est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
     est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
 
     eval_results(ref, (est1, est2, est3, est4, est5, est6, est7, est8))
 
-    eval_results_from_h5('eval_data.h5')
+    # eval_results_from_h5('eval_data.h5')
 
