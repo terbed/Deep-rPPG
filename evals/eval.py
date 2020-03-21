@@ -41,7 +41,7 @@ def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False)
     min_pulse_idx = np.argmin(np.abs(f - pulse_band[0]))
     max_pulse_idx = np.argmin(np.abs(f - pulse_band[1]))
 
-    n_segm = len(ests[-1] - w) // stride
+    n_segm = (len(ests[-1])-w) // stride
     n_est = len(ests)
     ref_list = np.empty((1, n_segm), dtype=float)
     est_list = np.empty((n_est, n_segm), dtype=float)
