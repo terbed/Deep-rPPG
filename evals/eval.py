@@ -42,6 +42,7 @@ def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False)
     max_pulse_idx = np.argmin(np.abs(f - pulse_band[1]))
 
     n_segm = len(ests[-1] - (w - stride)) // stride
+    n_segm = 1000  # for debug
     n_est = len(ests)
     ref_list = np.empty((1, n_segm), dtype=float)
     est_list = np.empty((n_est, n_segm), dtype=float)
@@ -212,10 +213,10 @@ if __name__ == '__main__':
     est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
 
     est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
-    est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
+    est7 = np.loadtxt('../outputs/pn191111snr_imgaugm_crop-benchmark_minden.dat')
     est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
 
     eval_results(ref, (est1, est2, est3, est4, est5, est6, est7, est8))
 
-    # eval_results_from_h5('eval_data.h5')
+    eval_results_from_h5('eval_data.h5')
 
