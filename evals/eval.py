@@ -43,6 +43,7 @@ def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False)
 
     n_segm = (len(ests[-1])-w) // stride
     n_est = len(ests)
+    n_segm = 1000
     ref_list = np.empty((1, n_segm), dtype=float)
     est_list = np.empty((n_est, n_segm), dtype=float)
     SNR_list = np.empty((n_est, n_segm), dtype=float)
