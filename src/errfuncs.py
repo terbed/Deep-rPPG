@@ -24,9 +24,9 @@ class NegPeaLoss(nn.Module):
         return totloss
 
 
-class _SNRLoss(nn.Module):
+class SNRLoss(nn.Module):
     def __init__(self):
-        super(_SNRLoss, self).__init__()
+        super(SNRLoss, self).__init__()
 
     def forward(self, outputs: tr.Tensor, targets: tr.Tensor, Fs = 20):
         device = outputs.device
@@ -64,9 +64,9 @@ class _SNRLoss(nn.Module):
         return tr.mean(losses)
 
 
-class SNRLoss(nn.Module):
+class _SNRLoss(nn.Module):
     def __init__(self):
-        super(SNRLoss, self).__init__()
+        super(_SNRLoss, self).__init__()
 
     def forward(self, outputs: tr.Tensor, targets: tr.Tensor, Fs=20):
         """
