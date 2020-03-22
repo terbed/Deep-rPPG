@@ -13,6 +13,7 @@ import torchvision.transforms.functional as TF
 from yolo.detect import babybox
 from yolo.models import *
 from yolo.utils import *
+from src.utils import img2uint8
 tr = torch
 
 
@@ -103,6 +104,9 @@ class Dataset4DFromHDF5(Dataset):
             idx = idx.tolist()
         d = self.D
 
+        # ------------------------------------
+        # Set up video augmentation parameters
+        # ------------------------------------
         if self.augment:
             # Set up the same image transforms for the chunk
             self.flip_p = random.random()
@@ -120,45 +124,30 @@ class Dataset4DFromHDF5(Dataset):
             self.freq_scale_fact = np.around(np.random.uniform(0.7, 1.4), decimals=1)
             d = int(np.around(self.D * self.freq_scale_fact))
 
+        # ---------------------------
         # Construct target signals
+        # ----------------------------
         targets = []
         for count, label in enumerate(self.labels):
             label_segment = label[self.begin + idx * self.D: self.begin + idx * self.D + self.D]
             label_segment = tr.from_numpy(label_segment).type(tr.FloatTensor)
-
+            # If numerical select mode value
             if self.label_names[count] == 'PulseNumerical':
                 label_segment = tr.mode(label_segment)[0] / 60.
 
             targets.append(label_segment)
 
+        # ----------------------------
         # Construct networks input
+        # -----------------------------
         video = tr.empty(self.C, d, self.H, self.W, dtype=tr.float)
-
         with h5py.File(self.db_path, 'r') as db:
             frames = db['frames']
-            # ------------------------------------------------------
-            # Calculate bounding box for the baby for this segment
-            # ------------------------------------------------------
+
+            # Calculate or load bounding box for the baby for this segment
             if self.crop and self.is_bbox:
                 bbox = db['bbox'][self.begin + idx * self.D, :]
-                y1 = bbox[0]
-                y2 = bbox[1]
-                x1 = bbox[2]
-                x2 = bbox[3]
-
-                # check to be inside image size
-                if y2 > self.H:
-                    y2 = self.H
-                if x2 > self.W:
-                    x2 = self.W
-                if y1 < 0:
-                    y1 = 0
-                if x1 < 0:
-                    x1 = 0
-                # check validity
-                if y2 - y1 < 1 or x2 - x1 < 1:
-                    y1 = x1 = 0
-                    y2, x2 = self.W, self.H
+                x1, x2, y1, y2 = self.bbox_checker(bbox[2], bbox[3], bbox[0], bbox[1])
             elif self.crop and not self.is_bbox:
                 first_frame = frames[self.begin + idx * self.D, :]
                 x1, y1, x2, y2 = babybox(self.yolo, first_frame, self.device)
@@ -169,66 +158,77 @@ class Dataset4DFromHDF5(Dataset):
             # conv3d input: N x C x D x H X W
             for i in range(d):
                 img = frames[self.begin + idx * self.D + i, :]
-
-                # convert to 8 bit if needed
-                if img.dtype is np.dtype(np.uint16):
-                    if np.max(img[:]) < 256:
-                        scale = 255.  # 8 bit stored as 16 bit...
-                    elif np.max(img[:]) < 4096:
-                        scale = 4095.   # 12 bit
-                    else:
-                        scale = 65535.   # 16 bit
-                    img = cv2.convertScaleAbs(img, alpha=(225./scale))
-
+                img = img2uint8(img)
                 # Crop baby from image
                 if self.crop:
                     img = img[y1:y2, x1:x2, :]
                 # Downsample cropped image
                 img = cv2.resize(img, (self.H, self.W), interpolation=cv2.INTER_AREA)
+                # Augment if needed and transform to tensor
+                img = self.img_transforms(img)
 
-                if self.augment:
-                    img = ToPILImage()(img)
-                    if self.flip_p > 0.5:
-                        img = TF.vflip(img)
-                    if self.flip_p > 0.5:
-                        img = TF.hflip(img)
-                    # img = TF.rotate(img, self.rot)
-                    img = self.color_transform(img)
-                    img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
-                else:
-                    img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
-
-                img = tr.sub(img, tr.mean(img, (1, 2)).view(3, 1, 1))  # Color channel centralization
                 video[:, i, :] = img
 
         # ------------------------------
         # Apply frequency augmentation
         # ------------------------------
         if self.augment_frq:
-            # edit video
-            resampler = torch.nn.Upsample(size=(self.D, self.H, self.W), mode='trilinear')
-            video = resampler(video.unsqueeze(0)).squeeze()
-
-            # edit labels
-            for counter, name in enumerate(self.label_names):
-                if name == 'PulseNumerical':
-                    targets[counter] = targets[counter] * self.freq_scale_fact
-                    # select the most frequent rate value for each batch and convert to Hz
-                    targets[counter] = targets[counter]
-                elif name == 'PPGSignal':
-                    segment = tr.from_numpy(
-                        self.labels[counter][self.begin + idx * self.D: self.begin + idx * self.D + d])
-                    resampler = torch.nn.Upsample(size=(self.D,), mode='linear')
-                    segment = resampler(segment.view(1, 1, -1))
-                    segment = segment.squeeze()
-                    targets[counter] = segment
-
-            sample = ((video,), *targets)
+            sample = self.freq_augm(d, idx, targets, video)
         else:
             sample = ((video,), *targets)
 
         # Video shape: C x D x H X W
         return sample
+
+    def freq_augm(self, d, idx, targets, video):
+        # edit video
+        resampler = torch.nn.Upsample(size=(self.D, self.H, self.W), mode='trilinear')
+        video = resampler(video.unsqueeze(0)).squeeze()
+        # edit labels
+        for counter, name in enumerate(self.label_names):
+            if name == 'PulseNumerical':
+                targets[counter] = targets[counter] * self.freq_scale_fact
+            elif name == 'PPGSignal':
+                segment = tr.from_numpy(
+                    self.labels[counter][self.begin + idx * self.D: self.begin + idx * self.D + d])
+                resampler = torch.nn.Upsample(size=(self.D,), mode='linear')
+                segment = resampler(segment.view(1, 1, -1))
+                segment = segment.squeeze()
+                targets[counter] = segment
+        sample = ((video,), *targets)
+        return sample
+
+    def img_transforms(self, img):
+        if self.augment:
+            img = ToPILImage()(img)
+            if self.flip_p > 0.5:
+                img = TF.vflip(img)
+            if self.flip_p > 0.5:
+                img = TF.hflip(img)
+            # img = TF.rotate(img, self.rot)
+            img = self.color_transform(img)
+            img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
+        else:
+            img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
+
+        img = tr.sub(img, tr.mean(img, (1, 2)).view(3, 1, 1))  # Color channel centralization
+        return img
+
+    def bbox_checker(self, x1, x2, y1, y2):
+        # check to be inside image size
+        if y2 > self.H:
+            y2 = self.H
+        if x2 > self.W:
+            x2 = self.W
+        if y1 < 0:
+            y1 = 0
+        if x1 < 0:
+            x1 = 0
+        # check validity
+        if y2 - y1 < 1 or x2 - x1 < 1:
+            y1 = x1 = 0
+            y2, x2 = self.W, self.H
+        return x1, x2, y1, y2
 
 
 class DatasetDeepPhysHDF5(Dataset):

@@ -1,4 +1,18 @@
 import numpy as np
+import cv2
+
+
+def img2uint8(img):
+    # convert to 8 bit if needed
+    if img.dtype is np.dtype(np.uint16):
+        if np.max(img[:]) < 256:
+            scale = 255.  # 8 bit stored as 16 bit...
+        elif np.max(img[:]) < 4096:
+            scale = 4095.  # 12 bit
+        else:
+            scale = 65535.  # 16 bit
+        img = cv2.convertScaleAbs(img, alpha=(225. / scale))
+    return img
 
 
 class ReferenceProcessor:
