@@ -34,7 +34,7 @@ def eval_model(model, testloader, criterion, oname):
 
         # save network output
         result.extend(outputs.data.cpu().numpy().flatten().tolist())
-        print(f'List length: {len(result)}')
+        # print(f'List length: {len(result)}')
 
         if criterion is not None:
             total_loss.append(loss.item())

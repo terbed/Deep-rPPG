@@ -24,9 +24,9 @@ class NegPeaLoss(nn.Module):
         return totloss
 
 
-class _SNRLoss(nn.Module):
+class SNRLoss(nn.Module):
     def __init__(self):
-        super(_SNRLoss, self).__init__()
+        super(SNRLoss, self).__init__()
 
     def forward(self, outputs: tr.Tensor, targets: tr.Tensor, Fs = 20):
         device = outputs.device
@@ -37,13 +37,11 @@ class _SNRLoss(nn.Module):
         pulse_band = tr.tensor([40/60., 250/60.], dtype=tr.float32).to(device)
         f = tr.linspace(0, Fs/2, int(N/2)+1, dtype=tr.float32).to(device)
 
-        min_idx = tr.argmin(tr.abs(f-pulse_band[0]))
+        min_idx = tr.argmin(tr.abs(f - pulse_band[0]))
         max_idx = tr.argmin(tr.abs(f - pulse_band[1]))
 
-        # If there is no batch extend with fantom batch dimension
-        if len(outputs.size()) == 1:
-            outputs = outputs.unsqueeze(dim=0)
-            targets = targets.unsqueeze(dim=0)
+        outputs = outputs.view(-1, 1)
+        targets = targets.view(-1, N)
 
         X = tr.rfft(outputs, 1, normalized=True)
         P1 = tr.add(X[:, :, 0]**2, X[:, :, 1]**2)                                   # One sided Power spectral density
@@ -64,9 +62,9 @@ class _SNRLoss(nn.Module):
         return tr.mean(losses)
 
 
-class SNRLoss(nn.Module):
+class _SNRLoss(nn.Module):
     def __init__(self):
-        super(SNRLoss, self).__init__()
+        super(_SNRLoss, self).__init__()
 
     def forward(self, outputs: tr.Tensor, targets: tr.Tensor, Fs=20):
         """
@@ -100,8 +98,6 @@ class SNRLoss(nn.Module):
         # calc SNR for each batch
         losses = tr.empty((len(ref_idxs),), dtype=tr.float32)
         for count, ref_idx in enumerate(ref_idxs):
-            pulse_freq_amp = P1[count, ref_idx]
-
             # Creating template for second and first harmonics pulse energy
             u = tr.zeros(len(f))
             u[ref_idx] = u[ref_idx*2] = 1
