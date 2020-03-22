@@ -59,7 +59,7 @@ class SNRLoss(nn.Module):
         for count, ref_idx in enumerate(ref_idxs):
             pulse_freq_amp = P1[count, ref_idx]
             other_avrg = (tr.sum(P1[count, min_idx:ref_idx-1]) + tr.sum(P1[count, ref_idx+2:max_idx]))/(freq_num_in_pulse_range-3)
-            losses[count] = -10*tr.log10(pulse_freq_amp/(other_avrg+1))
+            losses[count] = -10*tr.log10(pulse_freq_amp/other_avrg)
 
         return tr.mean(losses)
 
@@ -99,7 +99,6 @@ class _SNRLoss(nn.Module):
 
         # calc SNR for each batch
         losses = tr.empty((len(ref_idxs),), dtype=tr.float32)
-        freq_num_in_pulse_range = max_idx - min_idx
         for count, ref_idx in enumerate(ref_idxs):
             pulse_freq_amp = P1[count, ref_idx]
 
@@ -119,7 +118,7 @@ class _SNRLoss(nn.Module):
             signal_energy = tr.sum(tr.mul(P1[count, :], u))
             noise_energy = tr.sum(tr.mul(P1[count, :], w))
 
-            losses[count] = -10 * tr.log10(signal_energy / noise_energy)
+            losses[count] = -10 * tr.log10(signal_energy / (noise_energy+1))
 
         return tr.mean(losses)
 
