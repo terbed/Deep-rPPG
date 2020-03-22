@@ -185,7 +185,6 @@ def eval_results_from_h5(path):
     plt.xlabel('Time [h]')
     plt.title('Estimated signal form')
     plt.legend()
-    plt.show()
 
     # Plot pulse rates
     tt = [x/60./60. for x in range(est_list.shape[-1])]
@@ -193,7 +192,7 @@ def eval_results_from_h5(path):
     _, axs = plt.subplots(n_est, 1, figsize=(12, 10))
     for i, ax in enumerate(axs):
         ax.plot(tt, ref_list[0, :len(tt)], color='k', label='reference', linewidth=2.)
-        ax.plot(tt, est_list[i], 'r--', label=f'{i}th result')
+        ax.plot(tt, est_list[i], 'r--', label=f'{i}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
@@ -204,20 +203,25 @@ def eval_results_from_h5(path):
 
 
 if __name__ == '__main__':
-    ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
 
-    est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
-    est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
+    calc = False
 
-    est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
-    est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
-    est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
+    if calc:
+        ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
 
-    est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
-    est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
-    est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
+        est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
+        est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
 
-    eval_results(ref, (est1, est2, est3, est4, est5, est6, est7, est8))
+        est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
+        est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
+        est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
 
-    # eval_results_from_h5('eval_data.h5')
+        est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
+        est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
+        est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
+
+        eval_results(ref, (est1, est2, est3, est4, est5, est6, est7, est8))
+    else:
+        eval_results_from_h5('eval_data.h5')
+
 
