@@ -214,7 +214,7 @@ class Dataset4DFromHDF5(Dataset):
                 if name == 'PulseNumerical':
                     targets[counter] = targets[counter] * self.freq_scale_fact
                     # select the most frequent rate value for each batch and convert to Hz
-                    targets[counter] = tr.mode(targets[counter])[0]
+                    targets[counter] = targets[counter]
                 elif name == 'PPGSignal':
                     segment = tr.from_numpy(
                         self.labels[counter][self.begin + idx * self.D: self.begin + idx * self.D + d])
