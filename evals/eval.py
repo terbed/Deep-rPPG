@@ -14,7 +14,7 @@ def butter_bandpass(lowcut, highcut, fs, order=3):
     return b, a
 
 
-def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False):
+def eval_signal_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False):
     """
     Calculates statistics
 
@@ -139,6 +139,9 @@ def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False)
         plt.show()
 
 
+def eval_rate_results(ref, ests: tuple):
+    pass
+
 def eval_results_from_h5(path):
     with h5py.File(path, 'r') as db:
         ref_list = db['ref_list'][:]
@@ -237,7 +240,7 @@ if __name__ == '__main__':
         est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
         est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
 
-        eval_results(ref, (est6, est7, est8))
+        eval_signal_results(ref, (est6, est7, est8))
     else:
         eval_results_from_h5('eval_data.h5')
 

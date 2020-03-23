@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 tr = torch
 
 
-def eval_model(model, testloader, criterion, oname):
+def eval_model(models, testloader, criterion, oname):
     total_loss = []
     result = []
     for inputs, targets in tqdm(testloader):
@@ -25,16 +25,21 @@ def eval_model(model, testloader, criterion, oname):
         targets = targets.to(device)
 
         with tr.no_grad():
-            outputs = model(*inputs).squeeze()
-            # print(f'outputs.shape: {outputs.shape}')
+            if len(models) == 1:
+                outputs = model(*inputs).squeeze()
+                # print(f'outputs.shape: {outputs.shape}')
 
-            if criterion is not None:
-                loss = criterion(outputs, targets)
-                print(f'Current loss: {loss.item()}')
+                if criterion is not None:
+                    loss = criterion(outputs, targets)
+                    print(f'Current loss: {loss.item()}')
 
-        # save network output
-        result.extend(outputs.data.cpu().numpy().flatten().tolist())
-        # print(f'List length: {len(result)}')
+                # save network output
+                result.extend(outputs.data.cpu().numpy().flatten().tolist())
+                # print(f'List length: {len(result)}')
+            elif len(models) == 2:
+                signals = models[0](*inputs).view(-1, 1, 128)
+                rates = models[1](signals).view(-1, 2)
+                result.extend(rates.data.cpu().numpy().tolist())
 
         if criterion is not None:
             total_loss.append(loss.item())
@@ -53,9 +58,11 @@ if __name__ == '__main__':
     print(device)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('model', type=str, help='DeepPhys, PhysNet')
-    parser.add_argument('data', type=str, help='path to .hdf5 file containing data')
-    parser.add_argument("weights", type=str, help="if specified starts from checkpoint model")
+    parser.add_argument('model', type=str, nargs='+', help='DeepPhys, PhysNet, RateProbEst, RateEst')
+    parser.add_argument('--data', type=str, help='path to benchmark .hdf5 file containing data')
+    parser.add_argument('--interval', type=int, nargs='+',
+                        help='indices: val_start, val_end, shift_idx; if not given -> whole dataset')
+    parser.add_argument("--weights", type=str, nargs='+', help="model weight paths")
 
     parser.add_argument('--loss', type=str, default=None, help='Loss function: L1, RMSE, MSE, NegPea, SNR, Gauss, Laplace')
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
@@ -65,6 +72,9 @@ if __name__ == '__main__':
     parser.add_argument('--phase_shift', type=int, default=0, help='phase shift for reference signal')
 
     args = parser.parse_args()
+    start_idx, end_idx = None
+    if args.interval:
+        start_idx, end_idx = args.interval
 
     # --------------------------------------
     # Dataset and dataloader construction
@@ -76,24 +86,31 @@ if __name__ == '__main__':
         loader_device = torch.device('cpu')
 
     testset = trainset = None
-    if args.model == 'PhysNet':
+    if args.model[0] == 'PhysNet':
+        print('Constructing data loader for PhysNet architecture...')
         # chose label type for specific loss function
-        if args.loss == 'SNR':
+        if args.loss == 'SNR' or args.loss == 'Laplace' or args.loss == 'Gauss':
             ref_type = 'PulseNumerical'
+            print('\nPulseNumerical reference type chosen!')
         else:
             ref_type = 'PPGSignal'
+            print('\nPPGSignal reference type chosen!')
 
         testset = Dataset4DFromHDF5(args.data,
                                     labels=(ref_type,),
                                     device=loader_device,
+                                    start=start_idx, end=end_idx,
                                     crop=args.crop,
                                     augment=False,
                                     augment_freq=False)
 
-    elif args.model == 'DeepPhys':
+    elif args.model[0] == 'DeepPhys':
+        phase_shift = args.intervals[4] if len(args.intervals) == 5 else 0            # init phase shift parameter
+
         testset = DatasetDeepPhysHDF5(args.data,
                                       device=loader_device,
-                                      shift=args.phase_shift,
+                                      start=start_idx, end=end_idx,
+                                      shift=phase_shift,
                                       crop=args.crop,
                                       augment=False)
     else:
@@ -109,26 +126,41 @@ if __name__ == '__main__':
     # --------------------------
     # Load model
     # --------------------------
-    model = None
-    if args.model == 'DeepPhys':
-        model = DeepPhys()
-    elif args.model == 'PhysNet':
-        model = PhysNetED()
-    else:
-        print('\nError! No such model. Choose from: DeepPhys, PhysNet')
-        exit(666)
+    models = []
+    if len(args.model) == 1:
+        if args.model[0] == 'DeepPhys':
+            models.append(DeepPhys())
+        elif args.model[0] == 'PhysNet':
+            models.append(PhysNetED())
+        else:
+            print('\nError! No such model. Choose from: DeepPhys, PhysNet')
+            exit(666)
+    elif len(args.model) == 2:
+        # signal extractor model
+        models.append(PhysNetED())
+        # rate estimator model
+        if args.model[1] == 'RateProbEst':
+            models.append(RateProbEst())
+        elif args.model[1] == 'RateEst':
+            models.append(RateEst())
+        else:
+            print('\nNo such estimator model! Choose from: RateProbEst, RateEst')
+            exit(666)
 
     # Use multiple GPU if there are!
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
-        model = tr.nn.DataParallel(model)
+        for i in range(len(models)):
+            models[i] = tr.nn.DataParallel(models[i])
 
     # If there are pretrained weights, initialize model
-    model.load_state_dict(tr.load(args.weights))
+    for i, model in enumerate(models):
+        model.load_state_dict(tr.load(args.weights[i]))
 
     # Copy model to working device
-    model = model.to(device)
-    model.eval()
+    for i in range(len(models)):
+        models[i] = models[i].to(device)
+        models[i].eval()
 
     # --------------------------
     # Define loss function
@@ -148,12 +180,12 @@ if __name__ == '__main__':
     elif args.loss == 'Laplace':
         loss_fn = LaplaceLoss()
     else:
-        print('\nError! No such loss function. Choose from: L1, MSE, NegPea, SNR, Gauss, Laplace')
+        print('\nHey! No such loss function. Choose from: L1, MSE, NegPea, SNR, Gauss, Laplace')
         print('Inference with no loss function')
 
     # -------------------------------
     # Evaluate model
     # -------------------------------
-    eval_model(model, testloader, criterion=loss_fn, oname=args.ofile_name)
+    eval_model(models, testloader, criterion=loss_fn, oname=args.ofile_name)
 
     print('Succefully finished!')

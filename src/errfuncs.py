@@ -134,9 +134,9 @@ class GaussLoss(nn.Module):
         :return: loss (scalar)
         """
 
-        n = targets.shape[-1]
-        outputs = outputs.view(-1, n, 2)
-        targets = targets.view(-1, n)
+        n_samples = targets.shape[-1]
+        outputs = outputs.view(-1, n_samples, 2)
+        targets = targets.view(-1, n_samples)
 
         mus = outputs[:, :, 0]
         sigmas = outputs[:, :, 1]

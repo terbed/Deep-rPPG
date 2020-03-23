@@ -29,3 +29,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(len(args.model))
     print(args.model)
+
+    if not args.intervals:
+        print(None)
