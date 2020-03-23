@@ -29,11 +29,11 @@ def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35
         for phase in phases:
             running_loss = 0.0
             if phase == 'train':
-                for model in models:
-                    model.train()  # Set model to training mode -> activate droput layers and batch norm
+                for i in range(len(models)):
+                    models[i].train()  # Set model to training mode -> activate droput layers and batch norm
             else:
-                for model in models:
-                    model.eval()  # Set model to evaluate mode
+                for i in range(len(models)):
+                    models[i].eval()  # Set model to evaluate mode
 
             # Iterate over data.
             for inputs, targets in dataloaders[phase]:
@@ -252,8 +252,8 @@ if __name__ == '__main__':
     # Use multiple GPU if there are!
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
-        for model in models:
-            model = tr.nn.DataParallel(model)
+        for i in range(len(models)):
+            models[i] = tr.nn.DataParallel(models[i])
 
     # If there are pretrained weights, initialize model
     if args.pretrained_weights:
@@ -261,8 +261,8 @@ if __name__ == '__main__':
         print('\nPre-trained weights are loaded for PhysNet!')
 
     # Copy model to working device
-    for model in models:
-        model = model.to(device)
+    for i in range(len(models)):
+        models[i] = models[i].to(device)
 
     # --------------------------
     # Define loss function
