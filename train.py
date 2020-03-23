@@ -295,7 +295,7 @@ if __name__ == '__main__':
     # -----------------------------
     # Start training
     # -----------------------------
-    train_model(models, dataloaders, criterion=loss_fn, optimizer=opts, opath=args.checkpoint_dir, num_epochs=args.epochs)
+    train_model(models, dataloaders, criterion=loss_fn, optimizers=opts, opath=args.checkpoint_dir, num_epochs=args.epochs)
 
     experiment.end()
 
