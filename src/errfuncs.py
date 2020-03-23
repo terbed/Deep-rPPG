@@ -28,7 +28,7 @@ class SNRLoss(nn.Module):
     def __init__(self):
         super(SNRLoss, self).__init__()
 
-    def forward(self, outputs: tr.Tensor, targets: tr.Tensor, Fs = 20):
+    def forward(self, outputs: tr.Tensor, targets: tr.Tensor, Fs=20):
         device = outputs.device
         if not outputs.is_cuda:
             torch.backends.mkl.is_available()

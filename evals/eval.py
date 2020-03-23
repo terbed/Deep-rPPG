@@ -179,6 +179,7 @@ def eval_results_from_h5(path):
     plt.figure(figsize=(12, 10))
 
     shift = 0
+    w = 1000
     for i in range(n_est):
         tmp = ests[i, :].flatten()[:w]
         tmp = (tmp-np.mean(tmp))/np.std(tmp)

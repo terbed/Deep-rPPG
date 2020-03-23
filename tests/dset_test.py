@@ -61,7 +61,7 @@ def deepphys_dset_test(idx):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    dset = DatasetDeepPhysHDF5('/media/nas/PUBLIC/0_training_set/PIC190111_128x128_8UC3.hdf5', device)
+    dset = DatasetDeepPhysHDF5('/media/nas/PUBLIC/0_training_set/PIC190111_128x128_8UC3_fast.hdf5', device)
     A, M, point = dset[idx]
 
     print('target: ', point)
