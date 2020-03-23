@@ -43,7 +43,7 @@ def eval_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot=False)
 
     n_segm = (len(ests[-1])-w) // stride
     n_est = len(ests)
-    n_segm = 1000
+    # n_segm = 1000
     ref_list = np.empty((1, n_segm), dtype=float)
     est_list = np.empty((n_est, n_segm), dtype=float)
     SNR_list = np.empty((n_est, n_segm), dtype=float)
@@ -177,7 +177,6 @@ def eval_results_from_h5(path):
     # -------------------------------
     # Plot signal waveform
     plt.figure(figsize=(12, 10))
-
     shift = 0
     w = 1000
     for i in range(n_est):
@@ -186,43 +185,58 @@ def eval_results_from_h5(path):
         plt.plot(t[:w], tmp[:w]+(n_est-i)*5, label=f'{i}th result')
     plt.xlabel('Time [h]')
     plt.title('Estimated signal form')
+    plt.subplots_adjust(top=0.95, bottom=0.05)
     plt.legend()
 
     # Plot pulse rates
     tt = [x/60./60. for x in range(est_list.shape[-1])]
+    n = len(tt)
 
-    _, axs = plt.subplots(n_est, 1, figsize=(12, 10))
+    fig, axs = plt.subplots(n_est, 1, figsize=(12, 10))
     for i, ax in enumerate(axs):
-        ax.plot(tt, ref_list[0, :len(tt)], color='k', label='reference', linewidth=2.)
-        ax.plot(tt, est_list[i], 'r--', label=f'{i}th result', alpha=0.8)
+        ax.plot(tt[:n//2], ref_list[0, :n//2], color='k', label='reference', linewidth=2.)
+        ax.plot(tt[:n//2], est_list[i][:n//2], 'r--', label=f'{i}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
         ax.set_ylim(80, 250)
         ax.legend(loc='upper right')
-    plt.subplots_adjust(hspace=1)
+    fig.subplots_adjust(hspace=1)
+    fig.subplots_adjust(top=0.99, bottom=0.05, left=0.05, right=0.95)
+
+    fig, axs = plt.subplots(n_est, 1, figsize=(12, 10))
+    for i, ax in enumerate(axs):
+        ax.plot(tt[n//2:], ref_list[0, n//2:], color='k', label='reference', linewidth=2.)
+        ax.plot(tt[n//2:], est_list[i][n//2:], 'r--', label=f'{i}th result', alpha=0.8)
+        ax.grid()
+        ax.set_xlabel('Time [h]')
+        ax.set_ylabel('PR [BPM]')
+        ax.set_ylim(80, 250)
+        ax.legend(loc='upper right')
+    fig.subplots_adjust(hspace=1)
+    fig.subplots_adjust(top=0.99, bottom=0.05, left=0.05, right=0.95)
     plt.show()
 
 
 if __name__ == '__main__':
 
-    calc = False
+    calc = True
 
     if calc:
         ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
 
-        est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
-        est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
-
-        est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
-        est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
-        est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
+        # est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
+        # est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
+        #
+        # est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
+        # est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
+        # est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
 
         est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
         est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
         est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
 
-        eval_results(ref, (est1, est2, est3, est4, est5, est6, est7, est8))
+        eval_results(ref, (est6, est7, est8))
     else:
         eval_results_from_h5('eval_data.h5')
 
