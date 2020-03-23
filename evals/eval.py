@@ -176,7 +176,7 @@ def eval_results_from_h5(path):
     # Visualizations
     # -------------------------------
     # Plot signal waveform
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(12, 8))
     shift = 0
     w = 1000
     for i in range(n_est):
@@ -192,10 +192,11 @@ def eval_results_from_h5(path):
     tt = [x/60./60. for x in range(est_list.shape[-1])]
     n = len(tt)
 
-    fig, axs = plt.subplots(n_est, 1, figsize=(12, 10))
+    n_plot = 3
+    fig, axs = plt.subplots(n_plot, 1, figsize=(12, 8))
     for i, ax in enumerate(axs):
         ax.plot(tt[:n//2], ref_list[0, :n//2], color='k', label='reference', linewidth=2.)
-        ax.plot(tt[:n//2], est_list[i][:n//2], 'r--', label=f'{i}th result', alpha=0.8)
+        ax.plot(tt[:n//2], est_list[n_est-i-1][:n//2], 'r--', label=f'{i}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
@@ -204,10 +205,10 @@ def eval_results_from_h5(path):
     fig.subplots_adjust(hspace=1)
     fig.subplots_adjust(top=0.99, bottom=0.05, left=0.05, right=0.95)
 
-    fig, axs = plt.subplots(n_est, 1, figsize=(12, 10))
+    fig, axs = plt.subplots(n_plot, 1, figsize=(12, 8))
     for i, ax in enumerate(axs):
         ax.plot(tt[n//2:], ref_list[0, n//2:], color='k', label='reference', linewidth=2.)
-        ax.plot(tt[n//2:], est_list[i][n//2:], 'r--', label=f'{i}th result', alpha=0.8)
+        ax.plot(tt[n//2:], est_list[n_est-i-1][n//2:], 'r--', label=f'{i}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
@@ -220,7 +221,7 @@ def eval_results_from_h5(path):
 
 if __name__ == '__main__':
 
-    calc = True
+    calc = False
 
     if calc:
         ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')

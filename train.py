@@ -14,7 +14,7 @@ import torch.optim as optim
 tr = torch
 
 
-def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
+def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35):
     val_loss_history = []
     train_loss_history = []
 
@@ -29,30 +29,42 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
         for phase in phases:
             running_loss = 0.0
             if phase == 'train':
-                model.train()  # Set model to training mode -> activate droput layers and batch norm
+                for model in models:
+                    model.train()  # Set model to training mode -> activate droput layers and batch norm
             else:
-                model.eval()  # Set model to evaluate mode
+                for model in models:
+                    model.eval()  # Set model to evaluate mode
 
             # Iterate over data.
             for inputs, targets in dataloaders[phase]:
-
                 for count, item in enumerate(inputs):
                     inputs[count] = item.to(device)
                 targets = targets.to(device)
 
                 # zero the parameter gradients
-                optimizer.zero_grad()
+                for optimizer in optimizers:
+                    optimizer.zero_grad()
 
                 # forward
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(*inputs).squeeze()
-                    loss = criterion(outputs, targets)
-
-                    # backward + optimize only if in training phase
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                    if len(models) == 1:
+                        outputs = models[0](*inputs).squeeze()
+                        loss = criterion(outputs, targets)
+                        # backward + optimize only if in training phase
+                        if phase == 'train':
+                            loss.backward()
+                            optimizers[0].step()
+                    elif len(models) == 2:
+                        # Signal extraction
+                        signals = models[0](*inputs).view(-1, 1, 128)
+                        # Rate estimation
+                        rates = models[1](signals).squeeze()
+                        loss = criterion(rates, targets)
+                        if phase == 'train':
+                            loss.backward()
+                            optimizers[0].step()
+                            optimizers[1].step()
 
                 # statistics
                 running_loss += loss.item()
@@ -70,7 +82,8 @@ def train_model(model, dataloaders, criterion, optimizer, opath, num_epochs=35):
                     experiment.log_metric("loss", epoch_loss, step=epoch)
 
         experiment.log_epoch_end(epoch)
-        torch.save(model.state_dict(), f'checkpoints/{opath}/ep_{epoch}.pt')
+        for i, model in enumerate(models):
+            torch.save(model.state_dict(), f'checkpoints/{opath}/model{i}_ep{epoch}.pt')
         print()
 
 
@@ -80,11 +93,11 @@ if __name__ == '__main__':
     print(device)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('model', type=str, help='DeepPhys, PhysNet')
-    parser.add_argument('loss', type=str, help='L1, MSE, NegPea, SNR, Gauss, Laplace')
-    parser.add_argument('data', type=str, help='path to .hdf5 file containing data')
-    parser.add_argument('intervals', type=int, nargs='+', help='indices: train_start, train_end, val_start, val_end, shift_idx')
-    parser.add_argument('logger_name', type=str, help='project name for commet ml experiment')
+    parser.add_argument('model', type=str, nargs='+', help='DeepPhys, PhysNet, RateProbEst')
+    parser.add_argument('--loss', type=str, help='L1, MSE, NegPea, SNR, Gauss, Laplace')
+    parser.add_argument('--data', type=str, help='path to .hdf5 file containing data')
+    parser.add_argument('--intervals', type=int, nargs='+', help='indices: train_start, train_end, val_start, val_end, shift_idx')
+    parser.add_argument('--logger_name', type=str, help='project name for commet ml experiment')
 
     parser.add_argument('--epochs', type=int, default=60, help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
@@ -93,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
     parser.add_argument('--img_size', type=int, default=128, help='size of image')
     parser.add_argument('--time_depth', type=int, default=128, help='time depth for PhysNet')
-    parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
+    parser.add_argument('--lr', type=float, nargs='+', default=1e-4, help='learning rate')
     parser.add_argument('--crop', type=bool, default=True, help='crop baby with yolo (preprocessing step)')
     parser.add_argument('--img_augm', type=bool, default=False, help='image augmentation (flip, color jitter)')
     parser.add_argument('--freq_augm', type=bool, default=False, help='apply frequency augmentation')
@@ -151,10 +164,10 @@ if __name__ == '__main__':
         loader_device = torch.device('cpu')
 
     testset = trainset = None
-    if args.model == 'PhysNet':
+    if args.model[0] == 'PhysNet':
         print('Constructing data loader for PhysNet architecture...')
         # chose label type for specific loss function
-        if args.loss == 'SNR':
+        if args.loss == 'SNR' or args.loss == 'Laplace' or args.loss == 'Gauss':
             ref_type = 'PulseNumerical'
             print('\nPulseNumerical reference type chosen!')
         else:
@@ -177,7 +190,7 @@ if __name__ == '__main__':
                                     augment=False,
                                     augment_freq=False)
 
-    elif args.model == 'DeepPhys':
+    elif args.model[0] == 'DeepPhys':
         phase_shift = args.intervals[4] if len(args.intervals) == 5 else 0            # init phase shift parameter
         trainset = DatasetDeepPhysHDF5(args.data,
                                        device=loader_device,
@@ -215,27 +228,41 @@ if __name__ == '__main__':
     # --------------------------
     # Load model
     # --------------------------
-    model = None
-    if args.model == 'DeepPhys':
-        model = DeepPhys()
-    elif args.model == 'PhysNet':
-        model = PhysNetED()
-    else:
-        print('\nError! No such model. Choose from: DeepPhys, PhysNet')
-        exit(666)
+    models = []
+    if len(args.model) == 1:
+        if args.model[0] == 'DeepPhys':
+            models.append(DeepPhys())
+        elif args.model[0] == 'PhysNet':
+            models.append(PhysNetED())
+        else:
+            print('\nError! No such model. Choose from: DeepPhys, PhysNet')
+            exit(666)
+    elif len(args.model) == 2:
+        # signal extractor model
+        models.append(PhysNetED)
+        # rate estimator model
+        if args.model[1] == 'RateProbEst':
+            models.append(RateProbEst())
+        elif args.model[1] == 'RateEst':
+            models.append(RateEst)
+        else:
+            print('\nNo such estimator model! Choose from: RateProbEst, RateEst')
+            exit(666)
 
     # Use multiple GPU if there are!
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
-        model = tr.nn.DataParallel(model)
+        for model in models:
+            model = tr.nn.DataParallel(model)
 
     # If there are pretrained weights, initialize model
     if args.pretrained_weights:
-        model.load_state_dict(tr.load(args.pretrained_weights))
-        print('\nPre-trained weights are loaded!')
+        models[0].load_state_dict(tr.load(args.pretrained_weights))
+        print('\nPre-trained weights are loaded for PhysNet!')
 
     # Copy model to working device
-    model = model.to(device)
+    for model in models:
+        model = model.to(device)
 
     # --------------------------
     # Define loss function
@@ -261,12 +288,14 @@ if __name__ == '__main__':
     # ----------------------------
     # Initialize optimizer
     # ----------------------------
-    opt = optim.AdamW(model.parameters(), lr=args.lr)
+    opts = []
+    for i, model in enumerate(models):
+        opts.append(optim.AdamW(model.parameters(), lr=args.lr[i]))
 
     # -----------------------------
     # Start training
     # -----------------------------
-    train_model(model, dataloaders, criterion=loss_fn, optimizer=opt, opath=args.checkpoint_dir, num_epochs=args.epochs)
+    train_model(models, dataloaders, criterion=loss_fn, optimizer=opts, opath=args.checkpoint_dir, num_epochs=args.epochs)
 
     experiment.end()
 
