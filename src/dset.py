@@ -318,7 +318,7 @@ class DatasetDeepPhysHDF5(Dataset):
             self.flip_p = random.random()
             self.hflip_p = random.random()
             # self.rot = RandomRotation.get_params((0, 90))
-            self.color_transform = ColorJitter.get_params(brightness=(0.7, 1.3),
+            self.color_transform = ColorJitter.get_params(brightness=(0.3, 1.5),
                                                           contrast=(0.8, 1.2),
                                                           saturation=(0.8, 1.2),
                                                           hue=(0, 0))
