@@ -239,12 +239,12 @@ if __name__ == '__main__':
             exit(666)
     elif len(args.model) == 2:
         # signal extractor model
-        models.append(PhysNetED)
+        models.append(PhysNetED())
         # rate estimator model
         if args.model[1] == 'RateProbEst':
             models.append(RateProbEst())
         elif args.model[1] == 'RateEst':
-            models.append(RateEst)
+            models.append(RateEst())
         else:
             print('\nNo such estimator model! Choose from: RateProbEst, RateEst')
             exit(666)
