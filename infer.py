@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--phase_shift', type=int, default=0, help='phase shift for reference signal')
 
     args = parser.parse_args()
-    start_idx, end_idx = None
+    start_idx = end_idx = None
     if args.interval:
         start_idx, end_idx = args.interval
 
