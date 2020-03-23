@@ -1,5 +1,5 @@
 from src.dset import *
-
+from torch.utils.data import DataLoader
 
 def convert2cvimshow(img):
     frame = img.copy()
@@ -15,17 +15,26 @@ def physnet_dset_test(idx):
     # train on the GPU or on the CPU, if a GPU is not available
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    my_dset = Dataset4DFromHDF5('/media/nas/PUBLIC/benchmark_set/breathandpulsebenchmark_128x128_8UC3_minden.hdf5',
-                                ('PulseNumerical', ), device=device)
+    # my_dset = Dataset4DFromHDF5('/media/nas/PUBLIC/benchmark_set/breathandpulsebenchmark_128x128_8UC3_minden.hdf5',
+    #                            ('PulseNumerical', ), device=device)
 
-    video, label = my_dset[idx]
+    my_dset = Dataset4DFromHDF5('/Volumes/sztaki/DATA/PIC191111_128x128_U8C3_fast.hdf5',
+                                ('PulseNumerical',), device=device, crop=False, augment_freq=True)
+
+    dloader = DataLoader(my_dset, 2, True, pin_memory=True)
+
+    it = iter(dloader)
+    video, label = next(it)
+    print(video[0].type)
+    print(label.shape)
+    print(label*60.)
+
     label = label.data.cpu().numpy()
-    # print(label)
 
     # Display image
     # C x D x H X W
-    video = video.data.cpu().permute(1, 2, 3, 0).numpy()
-    print(video.shape)
+    video = video[0].data.cpu()[0, :].permute(1, 2, 3, 0).numpy()
+    # print(video.shape)
 
     cv2.namedWindow('video', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('video', 500, 500)
@@ -75,5 +84,5 @@ def deepphys_dset_test(idx):
 
 
 if __name__ == "__main__":
-    # physnet_dset_test(8000)                                                  # OK
-    deepphys_dset_test(10)                                                     # OK
+    physnet_dset_test(8000)                                                  # OK
+    # deepphys_dset_test(10)                                                     # OK

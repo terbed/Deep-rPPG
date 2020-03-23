@@ -182,7 +182,7 @@ class Dataset4DFromHDF5(Dataset):
 
     def freq_augm(self, d, idx, targets, video):
         # edit video
-        resampler = torch.nn.Upsample(size=(self.D, self.H, self.W), mode='trilinear')
+        resampler = torch.nn.Upsample(size=(self.D, self.H, self.W), mode='trilinear', align_corners=False)
         video = resampler(video.unsqueeze(0)).squeeze()
         # edit labels
         for counter, name in enumerate(self.label_names):
@@ -191,7 +191,7 @@ class Dataset4DFromHDF5(Dataset):
             elif name == 'PPGSignal':
                 segment = tr.from_numpy(
                     self.labels[counter][self.begin + idx * self.D: self.begin + idx * self.D + d])
-                resampler = torch.nn.Upsample(size=(self.D,), mode='linear')
+                resampler = torch.nn.Upsample(size=(self.D,), mode='linear', align_corners=False)
                 segment = resampler(segment.view(1, 1, -1))
                 segment = segment.squeeze()
                 targets[counter] = segment
