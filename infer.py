@@ -62,7 +62,7 @@ def eval_model(models, testloader, criterion, oname):
         with h5py.File(f'outputs/{oname}', 'w') as db:
             db.create_dataset('reference', shape=ref.shape, dtype=np.float32, data=ref)
             db.create_dataset('signal', shape=signal.shape, dtype=np.float32, data=signal)
-            db.create_dataset('rates', shape=rates.shape, dtype=np.float32, data=rates)
+            db.create_dataset('rates', shape=result.shape, dtype=np.float32, data=result)
     print('Result saved!')
 
 
