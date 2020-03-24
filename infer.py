@@ -17,6 +17,8 @@ tr = torch
 def eval_model(models, testloader, criterion, oname):
     total_loss = []
     result = []
+    signal = []
+    ref = []
     for inputs, targets in tqdm(testloader):
 
         # Copy data to device
@@ -39,7 +41,10 @@ def eval_model(models, testloader, criterion, oname):
             elif len(models) == 2:
                 signals = models[0](*inputs).view(-1, 1, 128)
                 rates = models[1](signals).view(-1, 2)
+                targets = targets.squeeze()
                 result.extend(rates.data.cpu().numpy().tolist())
+                signal.extend(signals.data.cpu().numpy().flatten().tolist())
+                ref.extend(targets.data.cpu().numpy().tolist())
 
         if criterion is not None:
             total_loss.append(loss.item())
@@ -48,7 +53,16 @@ def eval_model(models, testloader, criterion, oname):
         total_loss = np.nanmean(total_loss)
         print(f'\n------------------------\nTotal loss: {total_loss}\n-----------------------------')
 
-    np.savetxt(f'outputs/{oname}', np.array(result))
+    if len(models) == 1:
+        np.savetxt(f'outputs/{oname}', np.array(result))
+    elif len(models) == 2:
+        result = np.array(result)
+        ref = np.array(ref)
+        signal = np.array(signal)
+        with h5py.File(f'outputs/{oname}', 'w') as db:
+            db.create_dataset('reference', shape=ref.shape, dtype=np.float32, data=ref)
+            db.create_dataset('signal', shape=signal.shape, dtype=np.float32, data=signal)
+            db.create_dataset('rates', shape=rates.shape, dtype=np.float32, data=rates)
     print('Result saved!')
 
 

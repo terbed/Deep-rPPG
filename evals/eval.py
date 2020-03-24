@@ -140,7 +140,24 @@ def eval_signal_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot
 
 
 def eval_rate_results(ref, ests: tuple):
-    pass
+    N = len(ref)
+    Fs = 20.
+    n = 128
+    T = n/Fs  # length between two points in seconds
+    t = np.linspace(0, N-1, N)*T/60./60.  # time vector in hours
+    ref = ref*60.  # in BPM
+    for i, est in enumerate(ests):
+        est = est*60.
+        plt.figure(figsize=(12, 6))
+        plt.title(f'RateProbEst network result: {i}')
+        plt.plot(t, ref, 'k', linewidth=2, label='reference')
+        plt.plot(t, est[:, 0] + est[:, 1], 'b', alpha=0.2)
+        plt.plot(t, est[:, 0], 'r--', linewidth=1.5, label='mean estimate')
+        plt.plot(t, est[:, 0] - est[:, 1], 'b', alpha=0.2, label='confidence')
+        plt.legend()
+        plt.grid()
+    plt.show()
+
 
 def eval_results_from_h5(path):
     with h5py.File(path, 'r') as db:
@@ -242,6 +259,10 @@ if __name__ == '__main__':
 
         eval_signal_results(ref, (est6, est7, est8))
     else:
-        eval_results_from_h5('eval_data.h5')
+        # eval_results_from_h5('eval_data.h5')
+
+        est = np.loadtxt('../outputs/re_test.dat')
+        eval_rate_results(est[:, 0], (est,))
+
 
 
