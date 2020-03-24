@@ -3,6 +3,8 @@ from yolo.models import *
 from yolo.utils import *
 import time
 import torch
+import sys
+sys.path.append('../')
 tr = torch
 tr.backends.cudnn.benchmark = True
 tr.backends.cudnn.deterministic = True
