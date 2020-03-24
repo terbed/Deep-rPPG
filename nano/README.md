@@ -94,3 +94,32 @@ __(4) Verification__ --------------------------------------------------------
 
 
 ## GPU: Nvidia Jetson Nano
+```
+YOLO network inference time ===================================
+Shape of the input network: torch.Size([1, 3, 416, 416])
+The average running time of the network: 422.00370776938655 +/- 1.5917445608545957 ms
+
+
+
+DeepPhys inference time =========================================
+Shape of the input network: torch.Size([128, 3, 36, 36]) x 2
+The average running time of the network: 202.41548820521507 +/- 1.2325808370819287 ms
+
+
+
+PhysNet inference time ==========================================
+Shape of the input network: torch.Size([1, 3, 128, 128, 128])
+The average running time of the network: 2273.6186280514326 +/- 5.2405210041877925 ms
+
+
+RateProbEst inference time ======================================
+Shape of the input network: torch.Size([1, 1, 128])
+The average running time of the network: 11.530726820404734 +/- 0.30963280228178724 ms
+
+
+Full fused rate estimator: PhysNet+RateProbEst ===================
+Shape of the input network: torch.Size([1, 3, 128, 128, 128])
+The average running time of the network: 2274.0024768717817 +/- 7.459553790495938 ms
+
+
+```

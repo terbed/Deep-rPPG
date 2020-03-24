@@ -63,7 +63,7 @@ def measure_yolo(*shape):
 
 def measure_deepphys(*shape):
     print('\n\nDeepPhys inference time =========================================')
-    deepphys = DeepPhys().to(device)
+    deepphys = DeepPhys().to(device).eval()
     dp_input = (tr.randn(*shape).to(device), tr.randn(*shape).to(device))
     print(f'Shape of the input network: {dp_input[0].shape} x 2')
     run_inference(deepphys, *dp_input)
@@ -71,7 +71,7 @@ def measure_deepphys(*shape):
 
 def measure_physnet(*shape):
     print('\n\nPhysNet inference time ==========================================')
-    physnet = PhysNetED().to(device)
+    physnet = PhysNetED().to(device).eval()
     pn_input = tr.randn(*shape).to(device)
     print(f'Shape of the input network: {pn_input.shape}')
     run_inference(physnet, pn_input)
@@ -79,7 +79,7 @@ def measure_physnet(*shape):
 
 def measure_rateprobest(*shape):
     print('\n\nRateProbEst inference time ======================================')
-    ratest = RateProbEst().to(device)
+    ratest = RateProbEst().to(device).eval()
     ratest_input = tr.randn(*shape).to(device)
     print(f'Shape of the input network: {ratest_input.shape}')
     run_inference(ratest, ratest_input)
@@ -87,8 +87,8 @@ def measure_rateprobest(*shape):
 
 def measure_fullestimator(*shape):
     print('\n\nFull fused rate estimator: PhysNet+RateProbEst ===================')
-    ratest = RateProbEst().to(device)
-    physnet = PhysNetED().to(device)
+    ratest = RateProbEst().to(device).eval()
+    physnet = PhysNetED().to(device).eval()
     pn_input = tr.randn(*shape).to(device)
     print(f'Shape of the input network: {pn_input.shape}')
 
@@ -105,22 +105,22 @@ if __name__ == '__main__':
     # ---------------------
     # YOLO inference time
     # ---------------------
-    # measure_yolo(1, 3, 128, 128)
+    measure_yolo(1, 3, 128, 128)
 
     # ----------------------------
     # DeepPhys inference
     # ----------------------------
-    # measure_deepphys(128, 3, 36, 36)
+    measure_deepphys(128, 3, 36, 36)
 
     # ------------------------------
     # PhysNet
     # ------------------------------
-    # measure_physnet(1, 3, 128, 128, 128)
+    measure_physnet(1, 3, 128, 128, 128)
 
     # ------------------------------
     # RateProbEst
     # ------------------------------
-    # measure_rateprobest(1, 1, 128)
+    measure_rateprobest(1, 1, 128)
 
     # --------------------------------
     # Fused Full Rate Estimator
