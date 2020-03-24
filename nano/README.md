@@ -87,3 +87,10 @@ __(4) Verification__ --------------------------------------------------------
 >>> import torchvision
 >>> print(torchvision.__version__)
 ```
+
+# Results
+50 repetition was conducted and the last 40 running time was averaged (warming up time).
+## CPU: 2.6 GHz Quad-Core Intel Core i7 (2012)
+
+
+## GPU: Nvidia Jetson Nano

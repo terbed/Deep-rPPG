@@ -16,3 +16,6 @@ Our modified version:
 https://github.com/terbed/PyTorch-YOLOv3
 
 [PyTorch-YOLOv3]: https://github.com/eriklindernoren/PyTorch-YOLOv3
+
+## NVIDIA Jetson Nano inference
+The running speed of the networks are tested on NVIDIA Jetson Nano. Results and the installation steps of `PyTorch` and `OpenCV` are in the `nano` folder.
