@@ -41,9 +41,6 @@ def eval_model(models, testloader, criterion, oname):
             elif len(models) == 2:
                 signals = models[0](*inputs).view(-1, 1, 128)
                 rates = models[1](signals).view(-1, 2)
-                if criterion is not None:
-                    loss = criterion(rates.view(-1, 1, 2), targets.view(-1, 1))
-                    print(f'Current loss: {loss.item()}')
                 targets = targets.squeeze()
                 result.extend(rates.data.cpu().numpy().tolist())
                 signal.extend(signals.data.cpu().numpy().flatten().tolist())
@@ -109,9 +106,12 @@ if __name__ == '__main__':
         if args.loss == 'SNR' or args.loss == 'Laplace' or args.loss == 'Gauss':
             ref_type = 'PulseNumerical'
             print('\nPulseNumerical reference type chosen!')
-        else:
+        elif args.loss == 'L1' or args.loss == 'MSE' or args.loss == 'NegPea':
             ref_type = 'PPGSignal'
             print('\nPPGSignal reference type chosen!')
+        else:
+            ref_type = 'PulseNumerical'
+            print('\nPulseNumerical reference type chosen!')
 
         testset = Dataset4DFromHDF5(args.data,
                                     labels=(ref_type,),
