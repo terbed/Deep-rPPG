@@ -49,6 +49,55 @@ def run_inference(network, *x):
         network(*x)
 
 
+def measure_yolo(*shape):
+    model_def = '../yolo/config/yolov3-custom.cfg'
+    # weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
+    yolo = Darknet(model_def).to(device)
+    # yolo.load_state_dict(torch.load(weight_path))
+    yolo.eval()
+    print("\nYOLO network is initialized and ready to work!")
+    yolo_input = tr.randn(*shape).to(device)
+    print(f'Shape of the input network: {yolo_input.shape}')
+    run_inference(yolo, yolo_input)
+
+
+def measure_deepphys(*shape):
+    print('\n\nDeepPhys inference time =========================================')
+    deepphys = DeepPhys().to(device)
+    dp_input = (tr.randn(*shape).to(device), tr.randn(*shape).to(device))
+    print(f'Shape of the input network: {dp_input[0].shape} x 2')
+    run_inference(deepphys, *dp_input)
+
+
+def measure_physnet(*shape):
+    print('\n\nPhysNet inference time ==========================================')
+    physnet = PhysNetED().to(device)
+    pn_input = tr.randn(*shape).to(device)
+    print(f'Shape of the input network: {pn_input.shape}')
+    run_inference(physnet, pn_input)
+
+
+def measure_rateprobest(*shape):
+    print('\n\nRateProbEst inference time ======================================')
+    ratest = RateProbEst().to(device)
+    ratest_input = tr.randn(*shape).to(device)
+    print(f'Shape of the input network: {ratest_input.shape}')
+    run_inference(ratest, ratest_input)
+
+
+def measure_fullestimator(*shape):
+    print('\n\nFull fused rate estimator: PhysNet+RateProbEst ===================')
+    ratest = RateProbEst().to(device)
+    physnet = PhysNetED().to(device)
+    pn_input = tr.randn(*shape).to(device)
+    print(f'Shape of the input network: {pn_input.shape}')
+
+    def fused_rate_estimator(x):
+        ratest(physnet(x).view(-1, 1, 128))
+
+    run_inference(fused_rate_estimator, pn_input)
+
+
 if __name__ == '__main__':
     device = tr.device('cuda') if tr.cuda.is_available() else tr.device('cpu')
     print(device)
@@ -56,55 +105,26 @@ if __name__ == '__main__':
     # ---------------------
     # YOLO inference time
     # ---------------------
-    model_def = '../yolo/config/yolov3-custom.cfg'
-    # weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
-
-    yolo = Darknet(model_def).to(device)
-    # yolo.load_state_dict(torch.load(weight_path))
-    yolo.eval()
-    print("\nYOLO network is initialized and ready to work!")
-    yolo_input = tr.randn(1, 3, 416, 416).to(device)
-    print(f'Shape of the input network: {yolo_input.shape}')
-
-    run_inference(yolo, yolo_input)
+    # measure_yolo(1, 3, 128, 128)
 
     # ----------------------------
     # DeepPhys inference
     # ----------------------------
-    print('\n\nDeepPhys inference time =========================================')
-    deepphys = DeepPhys().to(device)
-    dp_input = (tr.randn(128, 3, 36, 36).to(device), tr.randn(128, 3, 36, 36).to(device))
-    print(f'Shape of the input network: {dp_input[0].shape} x 2')
-    run_inference(deepphys, *dp_input)
+    # measure_deepphys(128, 3, 36, 36)
 
     # ------------------------------
     # PhysNet
     # ------------------------------
-    print('\n\nPhysNet inference time ==========================================')
-    physnet = PhysNetED().to(device)
-    pn_input = tr.randn(1, 3, 128, 128, 128).to(device)
-    print(f'Shape of the input network: {pn_input.shape}')
-    run_inference(physnet, pn_input)
+    # measure_physnet(1, 3, 128, 128, 128)
 
     # ------------------------------
     # RateProbEst
     # ------------------------------
-    print('\n\nRateProbEst inference time ======================================')
-    ratest = RateProbEst().to(device)
-    ratest_input = tr.randn(1, 1, 128).to(device)
-    print(f'Shape of the input network: {ratest_input.shape}')
-    run_inference(ratest, ratest_input)
+    # measure_rateprobest(1, 1, 128)
 
     # --------------------------------
     # Fused Full Rate Estimator
     # ---------------------------------
-    print('\n\nFull fused rate estimator: PhysNet+RateProbEst ===================')
-    pn_input = tr.randn(1, 3, 128, 128, 128)
-    print(f'Shape of the input network: {pn_input.shape}')
-
-    def fused_rate_estimator(x):
-        ratest(physnet(x).view(-1, 1, 128))
-
-    run_inference(fused_rate_estimator, pn_input)
+    measure_fullestimator(1, 3, 128, 128, 128)
 
 
