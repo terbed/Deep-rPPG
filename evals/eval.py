@@ -289,7 +289,7 @@ if __name__ == '__main__':
             est = np.loadtxt('../outputs/re_test.dat')
             eval_rate_results(est[:, 0], (est,))
     else:
-        with h5py.File('../outputs/re_ep28.h5', 'r') as db:
+        with h5py.File('../outputs/re_ep93.h5', 'r') as db:
             keys = [key for key in db.keys()]
             print(keys)
 
@@ -302,6 +302,11 @@ if __name__ == '__main__':
         plt.figure()
         plt.title('output of the first network')
         plt.plot(signal)
+        plt.show()
+
+        plt.figure()
+        plt.title('FASZ')
+        plt.plot(ref[1000, :])
         plt.show()
 
         eval_rate_results(ref, (rates,))

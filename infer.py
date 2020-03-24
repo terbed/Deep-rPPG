@@ -42,6 +42,8 @@ def eval_model(models, testloader, criterion, oname):
                 signals = models[0](*inputs).view(-1, 1, 128)
                 rates = models[1](signals).view(-1, 2)
                 targets = targets.squeeze()
+                print(f'in inference targets.shape: {targets.shape}')
+                print(targets)
                 result.extend(rates.data.cpu().numpy().tolist())
                 signal.extend(signals.data.cpu().numpy().flatten().tolist())
                 ref.extend(targets.data.cpu().numpy().tolist())

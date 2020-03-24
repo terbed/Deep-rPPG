@@ -134,6 +134,7 @@ class Dataset4DFromHDF5(Dataset):
             # If numerical select mode value
             if self.label_names[count] == 'PulseNumerical':
                 label_segment = tr.mode(label_segment)[0] / 60.
+                print(label_segment.shape, label_segment)
 
             targets.append(label_segment)
 
