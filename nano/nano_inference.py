@@ -82,7 +82,7 @@ if __name__ == '__main__':
     # ------------------------------
     print('\n\nPhysNet inference time ==========================================')
     physnet = PhysNetED().to(device)
-    pn_input = tr.randn(1, 3, 128, 128, 128)
+    pn_input = tr.randn(1, 3, 128, 128, 128).to(device)
     print(f'Shape of the input network: {pn_input.shape}')
     run_inference(physnet, pn_input)
 
