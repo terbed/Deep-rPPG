@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # ---------------------
     # YOLO inference time
     # ---------------------
-    model_def = 'yolo/config/yolov3-custom.cfg'
+    model_def = '../yolo/config/yolov3-custom.cfg'
     # weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
 
     yolo = Darknet(model_def).to(device)
