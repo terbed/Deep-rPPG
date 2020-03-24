@@ -9,9 +9,6 @@ import numpy as np
 from yolo.parse_config import *
 from yolo.utils import build_targets, to_cpu, non_max_suppression
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
 
 def create_modules(module_defs):
     """
