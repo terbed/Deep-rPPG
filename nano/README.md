@@ -91,35 +91,72 @@ __(4) Verification__ --------------------------------------------------------
 # Results
 50 repetition was conducted and the last 40 running time was averaged (warming up time).
 ## CPU: 2.6 GHz Quad-Core Intel Core i7 (2012)
+```
+YOLO network inference time ========================================================
+Shape of the input network: torch.Size([1, 3, 128, 128])
+The average running time of the network: 228.9040875897436 +/- 7.853026535619944 ms
+
+
+
+DeepPhys inference time ==============================================================
+Shape of the input network: torch.Size([128, 3, 36, 36]) x 2
+The average running time of the network: 754.5646981794863 +/- 12.488300641005996 ms
+
+
+
+PhysNet inference time =============================================================
+Shape of the input network: torch.Size([1, 3, 128, 128, 128])
+The average running time of the network: 10930.139147512828 +/- 1298.24171836462 ms
+
+
+
+RateProbEst inference time ==========================================================
+Shape of the input network: torch.Size([1, 1, 128])
+The average running time of the network: 9.981026487177283 +/- 0.8496852697874339 ms
+
+
+
+Full fused rate estimator: PhysNet+RateProbEst ========================================
+Shape of the input network: torch.Size([1, 3, 128, 128, 128])
+The average running time of the network: 10539.158413282054 +/- 1036.8366352881399 ms
+```
 
 
 ## GPU: Nvidia Jetson Nano
 ```
-YOLO network inference time ===================================
+YOLO network inference time =======================================================
+Shape of the input network: torch.Size([1, 3, 128, 128])
+The average running time of the network: 71.27102261517557 +/- 1.4345624959190526 ms
+
 Shape of the input network: torch.Size([1, 3, 416, 416])
-The average running time of the network: 422.00370776938655 +/- 1.5917445608545957 ms
+The average running time of the network: 428.9916333333307 +/- 1.3436190679117026 ms
 
 
-
-DeepPhys inference time =========================================
+DeepPhys inference time ============================================================
 Shape of the input network: torch.Size([128, 3, 36, 36]) x 2
-The average running time of the network: 202.41548820521507 +/- 1.2325808370819287 ms
+The average running time of the network: 186.80833720491836 +/- 1.3538288588565277 ms
 
 
 
-PhysNet inference time ==========================================
+PhysNet inference time ==============================================================
 Shape of the input network: torch.Size([1, 3, 128, 128, 128])
-The average running time of the network: 2273.6186280514326 +/- 5.2405210041877925 ms
+The average running time of the network: 1877.2514318975132 +/- 6.865573963303903 ms
 
 
-RateProbEst inference time ======================================
+
+RateProbEst inference time ===========================================================
 Shape of the input network: torch.Size([1, 1, 128])
-The average running time of the network: 11.530726820404734 +/- 0.30963280228178724 ms
+The average running time of the network: 9.087809358998829 +/- 0.2438779403287001 ms
+
+Shape of the input network: torch.Size([10, 1, 128])
+The average running time of the network: 14.80706958980777 +/- 0.19120636422604642 ms
 
 
-Full fused rate estimator: PhysNet+RateProbEst ===================
+Full fused rate estimator: PhysNet+RateProbEst ========================================
 Shape of the input network: torch.Size([1, 3, 128, 128, 128])
-The average running time of the network: 2274.0024768717817 +/- 7.459553790495938 ms
+The average running time of the network: 1884.9364145128511 +/- 8.400773451781818 ms
 
+Shape of the input network: torch.Size([3, 3, 128, 128, 128]) -> (max batch size: 3)
+The average running time of the network: 5674.588254154001 +/- 37.78818835674967 ms
 
 ```
