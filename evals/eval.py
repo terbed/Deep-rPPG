@@ -140,6 +140,9 @@ def eval_signal_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot
 
 
 def eval_rate_results(ref, ests: tuple):
+    n_est = len(ests)
+    ref_list = ref
+
     N = len(ref)
     Fs = 20.
     n = 128
@@ -157,8 +160,29 @@ def eval_rate_results(ref, ests: tuple):
         plt.grid()
     plt.show()
 
+    est_list = np.empty((n_est, ests[0].shape[0]), dtype=float)
+    for i, est in enumerate(ests):
+        est_list[i, :] = est[:, 0]  # use the expected value statistics
 
-def eval_results_from_h5(path):
+    # Calculate metrics
+    MAEs = np.mean(np.abs(np.subtract(ref_list, est_list)), axis=1)
+    RMSEs = np.sqrt(np.mean(np.subtract(ref_list, est_list)**2, axis=1))
+    MSEs = np.mean(np.subtract(ref_list, est_list)**2, axis=1)
+
+    rs = np.empty((n_est, 1), dtype=float)
+    for count, est in enumerate(est_list):
+        rs[count] = pearsonr(ref_list.squeeze(), est)[0]
+
+    for i in range(n_est):
+        print(f'\n({i})th statistics')
+        print(f'MAE: {MAEs[i]}')
+        print(f'RMSE: {RMSEs[i]}')
+        print(f'MSE: {MSEs[i]}')
+        print(f'Pearson r: {rs[i]}')
+        print('-------------------------------------------------')
+
+
+def eval_signal_results_from_h5(path):
     with h5py.File(path, 'r') as db:
         ref_list = db['ref_list'][:]
         est_list = db['est_list'][:]
@@ -240,28 +264,46 @@ def eval_results_from_h5(path):
 
 if __name__ == '__main__':
 
+    signal = False
     calc = False
 
-    if calc:
-        ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
+    if signal:
+        if calc:
+            ref = np.loadtxt('../outputs/benchmark_minden_reference.dat')
 
-        # est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
-        # est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
-        #
-        # est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
-        # est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
-        # est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
+            # est1 = np.loadtxt('../outputs/dp190111-benchmark_minden.dat')
+            # est2 = np.loadtxt('../outputs/dp200101-benchmark_minden.dat')
+            #
+            # est3 = np.loadtxt('../outputs/pn190111-benchmark_minden.dat')
+            # est4 = np.loadtxt('../outputs/pn190111_imgaugm-benchmark_minden.dat')
+            # est5 = np.loadtxt('../outputs/pn190111_allaugm-benchmark_minden.dat')
 
-        est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
-        est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
-        est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
+            est6 = np.loadtxt('../outputs/PhysNet-tPIC191111_SNRLoss-onLargeBenchmark-200301-res.dat')
+            est7 = np.loadtxt('../outputs/pn191111snr_imgaugm-benchmark_minden.dat')
+            est8 = np.loadtxt('../outputs/pn191111snr_allaugm-benchmark_minden.dat')
 
-        eval_signal_results(ref, (est6, est7, est8))
+            eval_signal_results(ref, (est6, est7, est8))
+        else:
+            # eval_results_from_h5('eval_data.h5')
+
+            est = np.loadtxt('../outputs/re_test.dat')
+            eval_rate_results(est[:, 0], (est,))
     else:
-        # eval_results_from_h5('eval_data.h5')
+        with h5py.File('../outputs/re_ep28.h5', 'r') as db:
+            keys = [key for key in db.keys()]
+            print(keys)
 
-        est = np.loadtxt('../outputs/re_test.dat')
-        eval_rate_results(est[:, 0], (est,))
+            ref = db['reference'][:]
+            print(ref.shape)
+            rates = db['rates'][:]
+            print(rates.shape)
+            signal = db['signal'][:]
 
+        plt.figure()
+        plt.title('output of the first network')
+        plt.plot(signal)
+        plt.show()
+
+        eval_rate_results(ref, (rates,))
 
 

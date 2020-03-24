@@ -41,6 +41,9 @@ def eval_model(models, testloader, criterion, oname):
             elif len(models) == 2:
                 signals = models[0](*inputs).view(-1, 1, 128)
                 rates = models[1](signals).view(-1, 2)
+                if criterion is not None:
+                    loss = criterion(rates.view(-1, 1, 2), targets.view(-1, 1))
+                    print(f'Current loss: {loss.item()}')
                 targets = targets.squeeze()
                 result.extend(rates.data.cpu().numpy().tolist())
                 signal.extend(signals.data.cpu().numpy().flatten().tolist())
