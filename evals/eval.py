@@ -141,7 +141,6 @@ def eval_signal_results(ref, ests: tuple, Fs=20, pulse_band=(50., 250.), is_plot
 
 def eval_rate_results(ref, ests: tuple):
     n_est = len(ests)
-    ref_list = ref
 
     N = len(ref)
     Fs = 20.
@@ -160,18 +159,18 @@ def eval_rate_results(ref, ests: tuple):
         plt.grid()
     plt.show()
 
-    est_list = np.empty((n_est, ests[0].shape[0]), dtype=float)
+    est_list = np.empty((ests[0].shape[0], n_est), dtype=float)
     for i, est in enumerate(ests):
-        est_list[i, :] = est[:, 0]  # use the expected value statistics
+        est_list[:, i] = est[:, 0]*60.  # use the expected value statistics
 
     # Calculate metrics
-    MAEs = np.mean(np.abs(np.subtract(ref_list, est_list)), axis=1)
-    RMSEs = np.sqrt(np.mean(np.subtract(ref_list, est_list)**2, axis=1))
-    MSEs = np.mean(np.subtract(ref_list, est_list)**2, axis=1)
+    MAEs = np.mean(np.abs(np.subtract(ref, est_list)), axis=0)
+    RMSEs = np.sqrt(np.mean(np.subtract(ref, est_list)**2, axis=0))
+    MSEs = np.mean(np.subtract(ref, est_list)**2, axis=0)
 
     rs = np.empty((n_est, 1), dtype=float)
-    for count, est in enumerate(est_list):
-        rs[count] = pearsonr(ref_list.squeeze(), est)[0]
+    for count in range(n_est):
+        rs[count] = pearsonr(ref_list.squeeze(), est_list[:, count])[0]
 
     for i in range(n_est):
         print(f'\n({i})th statistics')
@@ -289,26 +288,29 @@ if __name__ == '__main__':
             est = np.loadtxt('../outputs/re_test.dat')
             eval_rate_results(est[:, 0], (est,))
     else:
-        with h5py.File('../outputs/re_ep93.h5', 'r') as db:
+        with h5py.File('../outputs/re_ep28.h5', 'r') as db:
             keys = [key for key in db.keys()]
             print(keys)
 
-            ref = db['reference'][:]
-            print(ref.shape)
+            refs = db['reference'][:]
+            ref_list = np.empty(shape=(len(refs), 1))
+            for i in range(len(refs)):
+                ref_list[i] = mode(refs[i, :])[0]
+
+            print(ref_list.shape)
             rates = db['rates'][:]
             print(rates.shape)
             signal = db['signal'][:]
 
+        with h5py.File('../outputs/re_ep93.h5') as db:
+            rates2 = db['rates'][:]
+            signal2 = db['signal'][:]
+
         plt.figure()
         plt.title('output of the first network')
-        plt.plot(signal)
+        plt.plot(signal, label='ep28')
+        plt.plot(signal2 + 4*np.std(signal2), label='ep93')
         plt.show()
-
-        plt.figure()
-        plt.title('FASZ')
-        plt.plot(ref[1000, :])
-        plt.show()
-
-        eval_rate_results(ref, (rates,))
+        eval_rate_results(ref_list, (rates, rates2))
 
 
