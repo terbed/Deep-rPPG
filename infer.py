@@ -40,13 +40,29 @@ def eval_model(models, testloader, criterion, oname):
                 # print(f'List length: {len(result)}')
             elif len(models) == 2:
                 signals = models[0](*inputs).view(-1, 1, 128)
-                rates = models[1](signals).view(-1, 2)
-                targets = targets.squeeze()
-                print(f'in inference targets.shape: {targets.shape}')
-                print(targets)
-                result.extend(rates.data.cpu().numpy().tolist())
-                signal.extend(signals.data.cpu().numpy().flatten().tolist())
-                ref.extend(targets.data.cpu().numpy().tolist())
+                n_batch = signals.shape[0]
+                if n_batch > 1:
+                    rates = models[1](signals).view(-1, 2)
+                    targets = targets.squeeze()
+                    print(f'in inference targets.shape: {targets.shape}')
+                    # print(targets)
+                    result.extend(rates.data.cpu().numpy().tolist())
+                    signal.extend(signals.data.cpu().numpy().flatten().tolist())
+                    ref.extend(targets.data.cpu().numpy().tolist())
+                else:   # Use dropout during eval to have model uncertainty
+                    models[1].eval()
+                    for m in models[1].modules():
+                        if m.__class__.__name__.startswith('Dropout'):
+                            m.train()
+                    signals = signals.repeat(10, 1, 128)
+                    rates = models[1](signals).view(-1, 2)
+                    std = tr.sum(rates.std(dim=0))
+                    m = rates.mean(dim=0)
+                    res = [m[0].item(), (m[1]+std).item()]
+
+                    result.extend(res)
+                    signal.extend(signals.data.cpu().numpy().flatten().tolist())
+                    ref.extend(targets.data.cpu().numpy().tolist())
 
         if criterion is not None:
             total_loss.append(loss.item())
@@ -84,7 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
     parser.add_argument("--ofile_name", type=str, help="output file name")
     parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
-    parser.add_argument('--crop', type=bool, default=True, help='crop baby with yolo (preprocessing step)')
+    parser.add_argument('--crop', type=bool, default=False, help='crop baby with yolo (preprocessing step)')
     parser.add_argument('--phase_shift', type=int, default=0, help='phase shift for reference signal')
 
     args = parser.parse_args()

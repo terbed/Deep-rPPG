@@ -133,7 +133,8 @@ class Dataset4DFromHDF5(Dataset):
             label_segment = tr.from_numpy(label_segment).type(tr.FloatTensor)
             # If numerical select mode value
             if self.label_names[count] == 'PulseNumerical':
-                label_segment = tr.mode(label_segment.squeeze())[0] / 60.
+                # label_segment = tr.mode(label_segment.squeeze())[0] / 60.
+                label_segment = tr.mean(label_segment.squeeze()) / 60.
             targets.append(label_segment)
 
         # ----------------------------
