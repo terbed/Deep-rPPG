@@ -163,6 +163,13 @@ def eval_rate_results(ref, ests: tuple):
     for i, est in enumerate(ests):
         est_list[:, i] = est[:, 0]*60.  # use the expected value statistics
 
+    # remove 6.2 to 8 hours from arrays since these parts are corrupted
+    # start_rmidx = int(6.2*60*60)
+    # end_rmidx = int(8*60*60)
+    # idxs2rm = [x for x in range(start_rmidx, end_rmidx)]
+    # ref_list = np.delete(ref, idxs2rm, axis=0)
+    # est_list = np.delete(est_list, idxs2rm, axis=0)
+
     # Calculate metrics
     MAEs = np.mean(np.abs(np.subtract(ref, est_list)), axis=0)
     RMSEs = np.sqrt(np.mean(np.subtract(ref, est_list)**2, axis=0))
@@ -184,9 +191,26 @@ def eval_rate_results(ref, ests: tuple):
 def eval_signal_results_from_h5(path):
     with h5py.File(path, 'r') as db:
         ref_list = db['ref_list'][:]
+        print(ref_list.shape)
         est_list = db['est_list'][:]
+        print(est_list.shape)
         ests = db['ests'][:]
         SNR_list = db['SNR_list'][:]
+        print(SNR_list.shape)
+
+    # remove 6.2 to 8 hours from arrays since these parts are corrupted
+    # start_rmidx = int(6.2*60*60)
+    # end_rmidx = int(8*60*60)
+    # idxs2rm = [x for x in range(start_rmidx, end_rmidx)]
+    # idxs2rm2 = [x for x in range(int(12.4*60*60), int(12.8*60*60))]
+    # idxs2rm.extend(idxs2rm2)
+
+    # idxs2rm = [x for x in range(0, int(14*60*60))]
+    #
+    # ref_list = np.delete(ref_list, idxs2rm, axis=1)
+    # est_list = np.delete(est_list, idxs2rm, axis=1)
+    # SNR_list = np.delete(SNR_list, idxs2rm, axis=1)
+    # print(ref_list.shape)
 
     Fs = 20
     w = 512
@@ -238,25 +262,25 @@ def eval_signal_results_from_h5(path):
     fig, axs = plt.subplots(n_plot, 1, figsize=(12, 8))
     for i, ax in enumerate(axs):
         ax.plot(tt[:n//2], ref_list[0, :n//2], color='k', label='reference', linewidth=2.)
-        ax.plot(tt[:n//2], est_list[n_est-i-1][:n//2], 'r--', label=f'{i}th result', alpha=0.8)
+        ax.plot(tt[:n//2], est_list[n_est-i-1][:n//2], 'r--', label=f'{n_est-i-1}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
         ax.set_ylim(80, 250)
         ax.legend(loc='upper right')
-    fig.subplots_adjust(hspace=1)
+    fig.subplots_adjust(hspace=.3)
     fig.subplots_adjust(top=0.99, bottom=0.05, left=0.05, right=0.95)
 
     fig, axs = plt.subplots(n_plot, 1, figsize=(12, 8))
     for i, ax in enumerate(axs):
         ax.plot(tt[n//2:], ref_list[0, n//2:], color='k', label='reference', linewidth=2.)
-        ax.plot(tt[n//2:], est_list[n_est-i-1][n//2:], 'r--', label=f'{i}th result', alpha=0.8)
+        ax.plot(tt[n//2:], est_list[n_est-i-1][n//2:], 'r--', label=f'{n_est-i-1}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
         ax.set_ylim(80, 250)
         ax.legend(loc='upper right')
-    fig.subplots_adjust(hspace=1)
+    fig.subplots_adjust(hspace=.3)
     fig.subplots_adjust(top=0.99, bottom=0.05, left=0.05, right=0.95)
     plt.show()
 
@@ -283,10 +307,8 @@ if __name__ == '__main__':
 
             eval_signal_results(ref, (est6, est7, est8))
         else:
-            # eval_results_from_h5('eval_data.h5')
+            eval_signal_results_from_h5('eval_data.h5')
 
-            est = np.loadtxt('../outputs/re_test.dat')
-            eval_rate_results(est[:, 0], (est,))
     else:
         with h5py.File('../outputs/re_ep28.h5', 'r') as db:
             keys = [key for key in db.keys()]
@@ -306,11 +328,11 @@ if __name__ == '__main__':
             rates2 = db['rates'][:]
             signal2 = db['signal'][:]
 
-        plt.figure()
-        plt.title('output of the first network')
-        plt.plot(signal, label='ep28')
-        plt.plot(signal2 + 4*np.std(signal2), label='ep93')
-        plt.show()
+        # plt.figure()
+        # plt.title('output of the first network')
+        # plt.plot(signal, label='ep28')
+        # plt.plot(signal2 + 4*np.std(signal2), label='ep93')
+        # plt.show()
         eval_rate_results(ref_list, (rates, rates2))
 
 
