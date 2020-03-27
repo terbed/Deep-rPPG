@@ -227,6 +227,7 @@ def eval_signal_results_from_h5(path):
 
     rs = np.empty((n_est, 1), dtype=float)
     for count, est in enumerate(est_list):
+        est_list[count] = np.convolve(est, np.ones((30,))/30, mode='same')
         rs[count] = pearsonr(ref_list.squeeze(), est)[0]
 
     for i in range(n_est):
@@ -258,11 +259,11 @@ def eval_signal_results_from_h5(path):
     tt = [x/60./60. for x in range(est_list.shape[-1])]
     n = len(tt)
 
-    n_plot = 3
+    n_plot = 6
     fig, axs = plt.subplots(n_plot, 1, figsize=(12, 8))
     for i, ax in enumerate(axs):
         ax.plot(tt[:n//2], ref_list[0, :n//2], color='k', label='reference', linewidth=2.)
-        ax.plot(tt[:n//2], est_list[n_est-i-1][:n//2], 'r--', label=f'{n_est-i-1}th result', alpha=0.8)
+        ax.plot(tt[:n//2], est_list[n_est-i-1][:n//2], 'r', label=f'{n_est-i-1}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
@@ -274,7 +275,7 @@ def eval_signal_results_from_h5(path):
     fig, axs = plt.subplots(n_plot, 1, figsize=(12, 8))
     for i, ax in enumerate(axs):
         ax.plot(tt[n//2:], ref_list[0, n//2:], color='k', label='reference', linewidth=2.)
-        ax.plot(tt[n//2:], est_list[n_est-i-1][n//2:], 'r--', label=f'{n_est-i-1}th result', alpha=0.8)
+        ax.plot(tt[n//2:], est_list[n_est-i-1][n//2:], 'r', label=f'{n_est-i-1}th result', alpha=0.8)
         ax.grid()
         ax.set_xlabel('Time [h]')
         ax.set_ylabel('PR [BPM]')
@@ -328,11 +329,15 @@ if __name__ == '__main__':
             rates2 = db['rates'][:]
             signal2 = db['signal'][:]
 
+        with h5py.File('../outputs/re_noncrop_ep93.h5') as db:
+            rates3 = db['rates'][:]
+            # signal2 = db['signal'][:]
+
         # plt.figure()
         # plt.title('output of the first network')
         # plt.plot(signal, label='ep28')
         # plt.plot(signal2 + 4*np.std(signal2), label='ep93')
         # plt.show()
-        eval_rate_results(ref_list, (rates, rates2))
+        eval_rate_results(ref_list, (rates, rates2, rates3))
 
 

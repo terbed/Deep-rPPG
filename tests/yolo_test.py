@@ -6,6 +6,7 @@ from PIL import Image
 import torch.nn.functional as F
 import h5py
 
+from src.utils import pad_to_square
 from yolo.detect import babybox
 from yolo.models import *
 from yolo.utils import *
@@ -51,8 +52,8 @@ weight_path = 'yolo/weights/yolov3_ckpt_42.pth'
 # hdf5_path = "test_series_9_febr25.hdf5"
 # hdf5_path = 'breathandpulsebenchmark_128x128_8UC3_minden.hdf5'
 
-root_hdf5 = '/media/nas/PUBLIC/0_training_set/'
-hdf5_path = "PIC190111_128x128_8UC3.hdf5"
+root_hdf5 = '/Users/Dani/deep_learning/DATA/'
+hdf5_path = "PIC190111_128x128_8UC3_copy.hdf5"
 
 # img_path = '/media/terbe/sztaki/DATA/BabyCropper/data/test_baby/'
 # img_name = '000028.png'
@@ -70,7 +71,7 @@ nms_thres = 0.4
 # Load model
 # -------------------
 model = Darknet(model_def).to(device)
-model.load_state_dict(torch.load(weight_path))
+model.load_state_dict(torch.load(weight_path, map_location=torch.device('cpu')))
 model.eval()
 
 # Load classes
@@ -90,9 +91,14 @@ for i in range(1, 128):
     img = cv2.rectangle(img, (x_1, y_1), (x_2, y_2), (0, 0, 0), 1)
     cv2.imshow('frame', img)
 
+    cropped = img[y_1:y_2, x_1:x_2, :]
+    cropped = transforms.ToTensor()(cropped)
+    cropped, _ = pad_to_square(cropped, 0)
+    cropped = transforms.ToPILImage()(cropped)
+    cropped = np.array(cropped)
     cv2.namedWindow('cropped', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('cropped', 500, 500)
-    cv2.imshow('cropped', img[y_1:y_2, x_1:x_2, :])
+    cv2.imshow('cropped', cropped)
     cv2.waitKey(1)
 
 while cv2.waitKey(1) != 13:

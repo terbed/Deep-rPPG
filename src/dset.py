@@ -13,7 +13,7 @@ import torchvision.transforms.functional as TF
 from yolo.detect import babybox
 from yolo.models import *
 from yolo.utils import *
-from src.utils import img2uint8
+from src.utils import img2uint8, pad_to_square
 tr = torch
 
 
@@ -162,6 +162,10 @@ class Dataset4DFromHDF5(Dataset):
                 # Crop baby from image
                 if self.crop:
                     img = img[y1:y2, x1:x2, :]
+                    # pad to square
+                    img = ToTensor()(img)
+                    img, _ = pad_to_square(img, 0)
+                    img = np.array(ToPILImage()(img))
                 # Downsample cropped image
                 img = cv2.resize(img, (self.H, self.W), interpolation=cv2.INTER_AREA)
                 # Augment if needed and transform to tensor

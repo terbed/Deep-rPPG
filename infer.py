@@ -49,7 +49,7 @@ def eval_model(models, testloader, criterion, oname):
                     result.extend(rates.data.cpu().numpy().tolist())
                     signal.extend(signals.data.cpu().numpy().flatten().tolist())
                     ref.extend(targets.data.cpu().numpy().tolist())
-                else:   # Use dropout during eval to have model uncertainty
+                else:   # Use dropout during eval to have model uncertainty :TODO bring into life this function
                     models[1].eval()
                     for m in models[1].modules():
                         if m.__class__.__name__.startswith('Dropout'):
