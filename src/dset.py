@@ -163,9 +163,9 @@ class Dataset4DFromHDF5(Dataset):
                 if self.crop:
                     img = img[y1:y2, x1:x2, :]
                     # pad to square
-                    img = ToTensor()(img)
-                    img, _ = pad_to_square(img, 0)
-                    img = np.array(ToPILImage()(img))
+                    # img = ToTensor()(img)
+                    # img, _ = pad_to_square(img, 0)
+                    # img = np.array(ToPILImage()(img))
                 # Downsample cropped image
                 img = cv2.resize(img, (self.H, self.W), interpolation=cv2.INTER_AREA)
                 # Augment if needed and transform to tensor
