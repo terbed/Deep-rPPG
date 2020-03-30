@@ -188,6 +188,8 @@ class Dataset4DFromHDF5(Dataset):
         if self.augment_frq:
             sample = self.freq_augm(d, idx, targets, video)
         else:
+            if self.ccc:
+                targets[0] = tr.mean(targets)
             sample = (video, *targets)
 
         # Video shape: C x D x H X W
