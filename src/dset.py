@@ -216,15 +216,15 @@ class Dataset4DFromHDF5(Dataset):
         # Augment labels accordingly
         # -----------------------------
         targets = tr.stack([tr.mean(target[:d]) * self.freq_scale_fact for target in targets]).unsqueeze(1)
-        print(f'Targets: {targets.shape}')
+        # print(f'Targets: {targets.shape}')
 
         # -------------------------------------
         # Augment video same way for each batch
         # -------------------------------------
         # Frequency augmentation
-        print(len(videos))
+        # print(len(videos))
         videos = tr.stack(videos)
-        print(f'videos: {videos.shape}')
+        # print(f'videos: {videos.shape}')
         resampler = torch.nn.Upsample(size=(desired_d, self.H, self.W), mode='trilinear', align_corners=False)
         videos = resampler(videos[:, :, 0:desired_d, :, :])
         # Image augmentation

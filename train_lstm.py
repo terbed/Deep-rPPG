@@ -51,7 +51,7 @@ def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35
                     # Signal extraction
                     signals = models[0](inputs).view(-1, 1, 128)
                     # Rate estimation
-                    rates = models[1](signals).view(-1, 1, 2)
+                    rates, _, _ = models[1](signals).view(-1, 1, 2)
                     loss = criterion(rates, targets.view(-1, 1))
                     if phase == 'train':
                         loss.backward()

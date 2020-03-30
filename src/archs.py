@@ -472,6 +472,7 @@ class RateProbLSTMCNN(nn.Module):
             x2, h1 = self.lstm_layer1(x)
         else:
             x2, h1 = self.lstm_layer1(x, h1)
+        self.lstm_layer1.flatten_parameters()
 
         x = tr.cat((x1, x2), dim=2)
         # torch.Size([10, 1, 336])
@@ -481,6 +482,7 @@ class RateProbLSTMCNN(nn.Module):
             x, h2 = self.lstm_layer2(x)
         else:
             x, h2 = self.lstm_layer2(x, h2)
+        self.lstm_layer2.flatten_parameters()
 
         x = self.linear(x.view(-1, 80))
 
