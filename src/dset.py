@@ -204,20 +204,20 @@ class Dataset4DFromHDF5(Dataset):
         # Set up the same image transforms for the given number of batches
         self.flip_p = random.random()
         self.hflip_p = random.random()
-        self.color_transform = ColorJitter.get_params(brightness=(0.6, 1.3),
+        self.color_transform = ColorJitter.get_params(brightness=(0.7, 1.3),
                                                       contrast=(0.8, 1.2),
                                                       saturation=(0.8, 1.2),
                                                       hue=(0, 0))
 
         # set up parameters for frequency augmentation
         desired_d = 128
-        self.freq_scale_fact = np.around(np.random.uniform(0.7, 1.4), decimals=1)
+        self.freq_scale_fact = np.around(np.random.uniform(0.7, 1.3), decimals=1)
         d = int(np.around(desired_d * self.freq_scale_fact))
 
         # -----------------------------
         # Augment labels accordingly
         # -----------------------------
-        targets = tr.stack([tr.mean(target[:d]) * self.freq_scale_fact for target in targets]).unsqueeze(1)
+        targets = tr.stack([tr.mode(target[:d])[0] * self.freq_scale_fact for target in targets]).unsqueeze(1)
         # print(f'Targets: {targets.shape}')
 
         # -------------------------------------
