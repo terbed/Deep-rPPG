@@ -23,12 +23,14 @@ class Dataset4DFromHDF5(Dataset):
     """
 
     def __init__(self, path: str, labels: tuple, device, start=None, end=None, D=128, C=3, H=128, W=128, crop=True,
-                 augment=False,  augment_freq=False):
+                 augment=False,  augment_freq=False, ccc=True):
         """
 
         :param path: Path to hdf5 file
         :param labels: tuple of label names to use (e.g.: ('pulseNumerical', 'resp_signal') or ('pulse_signal', ) )
             Note that the first label must be the pulse rate if it is present!
+        :param D: In case of using collate_fn in dataloader, set this to 180 -> D=180
+        :param ccc: color channel centralization
         """
         self.device = device
         self.D = D
@@ -38,6 +40,7 @@ class Dataset4DFromHDF5(Dataset):
         self.crop = crop
         self.augment = augment
         self.augment_frq = augment_freq
+        self.ccc = ccc
 
         # ---------------------------
         # Augmentation variables
@@ -134,7 +137,8 @@ class Dataset4DFromHDF5(Dataset):
             # If numerical select mode value
             if self.label_names[count] == 'PulseNumerical':
                 # label_segment = tr.mode(label_segment.squeeze())[0] / 60.
-                label_segment = tr.mean(label_segment.squeeze()) / 60.
+                # label_segment = tr.mean(label_segment.squeeze()) / 60.
+                label_segment = label_segment.squeeze() / 60.
             targets.append(label_segment)
 
         # ----------------------------
@@ -169,7 +173,12 @@ class Dataset4DFromHDF5(Dataset):
                 # Downsample cropped image
                 img = cv2.resize(img, (self.H, self.W), interpolation=cv2.INTER_AREA)
                 # Augment if needed and transform to tensor
-                img = self.img_transforms(img)
+                if self.augment:
+                    img = self.img_transforms(img)
+                else:
+                    img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
+                    if self.ccc:
+                        img = tr.sub(img, tr.mean(img, (1, 2)).view(3, 1, 1))  # Color channel centralization
 
                 video[:, i, :] = img
 
@@ -179,10 +188,51 @@ class Dataset4DFromHDF5(Dataset):
         if self.augment_frq:
             sample = self.freq_augm(d, idx, targets, video)
         else:
-            sample = ((video,), *targets)
+            sample = (video, *targets)
 
         # Video shape: C x D x H X W
         return sample
+
+    def collate_fn(self, batch):
+        """
+        This function applies the same augmentation for each batch to result in an LSTM sequence
+        """
+        videos, targets = list(zip(*batch))
+
+        # Set up the same image transforms for the given number of batches
+        self.flip_p = random.random()
+        self.hflip_p = random.random()
+        self.color_transform = ColorJitter.get_params(brightness=(0.6, 1.3),
+                                                      contrast=(0.8, 1.2),
+                                                      saturation=(0.8, 1.2),
+                                                      hue=(0, 0))
+
+        # set up parameters for frequency augmentation
+        desired_d = 128
+        self.freq_scale_fact = np.around(np.random.uniform(0.7, 1.4), decimals=1)
+        d = int(np.around(desired_d * self.freq_scale_fact))
+
+        # -----------------------------
+        # Augment labels accordingly
+        # -----------------------------
+        targets = tr.stack([tr.mean(target[:d]) * self.freq_scale_fact for target in targets]).unsqueeze(1)
+        print(f'Targets: {targets.shape}')
+
+        # -------------------------------------
+        # Augment video same way for each batch
+        # -------------------------------------
+        # Frequency augmentation
+        print(len(videos))
+        videos = tr.stack(videos)
+        print(f'videos: {videos.shape}')
+        resampler = torch.nn.Upsample(size=(desired_d, self.H, self.W), mode='trilinear', align_corners=False)
+        videos = resampler(videos[:, :, 0:desired_d, :, :])
+        # Image augmentation
+        for b in range(videos.shape[0]):
+            for d in range(videos.shape[2]):
+                videos[b, :, d, :, :] = self.img_transforms(videos[b, :, d, :, :])
+
+        return videos, targets
 
     def freq_augm(self, d, idx, targets, video):
         # edit video
@@ -203,17 +253,14 @@ class Dataset4DFromHDF5(Dataset):
         return sample
 
     def img_transforms(self, img):
-        if self.augment:
-            img = ToPILImage()(img)
-            if self.flip_p > 0.5:
-                img = TF.vflip(img)
-            if self.flip_p > 0.5:
-                img = TF.hflip(img)
-            # img = TF.rotate(img, self.rot)
-            img = self.color_transform(img)
-            img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
-        else:
-            img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
+        img = ToPILImage()(img)
+        if self.flip_p > 0.5:
+            img = TF.vflip(img)
+        if self.flip_p > 0.5:
+            img = TF.hflip(img)
+        # img = TF.rotate(img, self.rot)
+        img = self.color_transform(img)
+        img = ToTensor()(img)  # uint8 H x W x C -> torch image: float32 [0, 1] C X H X W
 
         img = tr.sub(img, tr.mean(img, (1, 2)).view(3, 1, 1))  # Color channel centralization
         return img

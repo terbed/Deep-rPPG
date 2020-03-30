@@ -83,6 +83,57 @@ def deepphys_dset_test(idx):
         pass
 
 
+def lstm_loader_test():
+    # train on the GPU or on the CPU, if a GPU is not available
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+    # my_dset = Dataset4DFromHDF5('/media/nas/PUBLIC/benchmark_set/breathandpulsebenchmark_128x128_8UC3_minden.hdf5',
+    #                            ('PulseNumerical', ), device=device)
+
+    my_dset = Dataset4DFromHDF5('/Volumes/sztaki/DATA/PIC191111_128x128_U8C3_fast.hdf5',
+                                ('PulseNumerical',), device=device, crop=False, D=180)
+
+    dloader = DataLoader(my_dset, 2, shuffle=False, pin_memory=True, collate_fn=my_dset.collate_fn)
+
+    it = iter(dloader)
+    video, label = next(it)
+    print(video[0].type)
+    print(label.shape)
+    print(label * 60.)
+
+    label = label.data.cpu().numpy().squeeze()
+
+    # Display image
+    # C x D x H X W
+    video1 = video.data.cpu()[0, :].permute(1, 2, 3, 0).numpy()
+    video2 = video.data.cpu()[1, :].permute(1, 2, 3, 0).numpy()
+    # print(video.shape)
+
+    cv2.namedWindow('video', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('video', 500, 500)
+    for i in range(video1.shape[0]):
+        frame = np.squeeze(video1[i, :])
+        frame = frame - np.min(frame)
+        frame = frame / np.max(frame)
+        frame = (frame * 255).astype(np.uint8)
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        cv2.imshow('video', frame)
+        cv2.waitKey(40)
+
+    for i in range(video2.shape[0]):
+        frame = np.squeeze(video2[i, :])
+        frame = frame - np.min(frame)
+        frame = frame / np.max(frame)
+        frame = (frame * 255).astype(np.uint8)
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        cv2.imshow('video', frame)
+        cv2.waitKey(40)
+
+    cv2.destroyAllWindows()
+
+
 if __name__ == "__main__":
-    physnet_dset_test(8000)                                                  # OK
+    # physnet_dset_test(8000)                                                  # OK
     # deepphys_dset_test(10)                                                     # OK
+    lstm_loader_test()

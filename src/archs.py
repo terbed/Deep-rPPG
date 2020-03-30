@@ -348,6 +348,145 @@ class RateEst(nn.Module):
         return x
 
 
+# --------------------------------------------------------------------------------------------------------------------
+# CNN + LSTM - RateProbEstNet
+# --------------------------------------------------------------------------------------------------------------------
+class InceptionBlock(nn.Module):
+    """
+    Performs 5 parallel convolution with different kernel size and fed results in channels
+    """
+    def __init__(self):
+        super().__init__()
+        kernels = [5, 21, 41, 61, 81]
+        pads = [(x-1)//2 for x in kernels]
+
+        self.conv_list = nn.ModuleList(
+            [nn.Conv1d(1, 1, kernel_size=k, stride=1, padding=p) for k, p in zip(kernels, pads)]
+        )
+
+    def forward(self, x):
+        out = []
+        for conv in self.conv_list:
+            out.append(conv(x))
+
+        out = tr.cat(out, dim=1)
+        return out
+
+
+class CNNBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        max_pool_kernel_size = 5
+        conv_kernel_size = 21
+        padn = (conv_kernel_size-1)//2
+
+        self.first_part = nn.Sequential(
+            nn.BatchNorm1d(5),
+            nn.Dropout(0.1),
+
+            nn.Conv1d(5, 32, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(32),
+            nn.ELU(),
+
+            nn.Dropout(0.1),
+            nn.Conv1d(32, 32, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(32),
+            nn.ELU(),
+
+            nn.Dropout(0.1),
+            nn.Conv1d(32, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=2, padding=2),
+            nn.BatchNorm1d(64),
+            nn.ELU()
+        )
+
+        self.middle_part = nn.Sequential(
+            nn.Dropout(0.15),
+            nn.Conv1d(64, 128, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(128),
+            nn.ELU(),
+
+            nn.Dropout(0.15),
+            nn.Conv1d(128, 256, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(256),
+            nn.ELU(),
+
+            nn.Dropout(0.2),
+            nn.Conv1d(256, 128, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(128),
+            nn.ELU(),
+
+            nn.Dropout(0.3),
+            nn.Conv1d(128, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(64),
+            nn.ELU(),
+
+            nn.Dropout(0.3),
+            nn.Conv1d(64, 32, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=2, padding=2),
+            nn.BatchNorm1d(32),
+            nn.ELU()
+        )
+
+        self.end_part = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Conv1d(32, 16, kernel_size=1, stride=1, padding=0),
+            nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=2, padding=2),
+        )
+
+    def forward(self, x):
+        x = self.first_part(x)
+        x = self.middle_part(x)
+        x = self.end_part(x)
+
+        N, C, L = x.shape
+        x = x.view(N, 1, C*L)
+
+        # output shape [1, 1, 256]
+        return x
+
+
+class RateProbLSTMCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.n_layers = 2
+        self.n_hid = 80
+
+        self.inception_block = InceptionBlock()
+        self.cnn_block = CNNBlock()
+
+        self.lstm_layer1 = nn.LSTM(input_size=128, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.3)
+        self.lstm_layer2 = nn.LSTM(input_size=336, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.5)
+
+        self.linear = nn.Linear(80, 2)
+
+    def forward(self, x, h1=None, h2=None):
+        # convolution stream
+        x1 = self.inception_block(x)
+        x1 = self.cnn_block(x1)
+
+        # lstm stream
+        if h1 is None:
+            x2, h1 = self.lstm_layer1(x)
+        else:
+            x2, h1 = self.lstm_layer1(x, h1)
+
+        x = tr.cat((x1, x2), dim=2)
+        # torch.Size([10, 1, 336])
+
+        # last part
+        if h2 is None:
+            x, h2 = self.lstm_layer2(x)
+        else:
+            x, h2 = self.lstm_layer2(x, h2)
+
+        x = self.linear(x.view(-1, 80))
+
+        return x, h1, h2
+
+
 if __name__ == '__main__':
     def deepphys_test():
         model = DeepPhys()
@@ -365,4 +504,30 @@ if __name__ == '__main__':
             out = model(x)
         print(out.shape)
 
-    physnet_test()                  # OK!
+    # physnet_test()                  # OK!
+
+    def inception_test():
+        incept_block = InceptionBlock()
+        x = tr.randn(10, 1, 128)
+        out = incept_block(x)
+        cnnblock = CNNBlock()
+        out = cnnblock(out)
+        print(out.shape)
+
+    # inception_test()        # OK
+
+    def cnnblock_test():
+        cnnblock = CNNBlock()
+        x = tr.randn(10, 5, 128)
+        out = cnnblock(x)
+        print(out.shape)
+
+    # cnnblock_test()
+
+    def rateproblstmcnn_test():
+        model = RateProbLSTMCNN()
+        x = tr.randn(10, 1, 128)
+        out, _, _ = model(x)
+        print(out.shape)
+
+    rateproblstmcnn_test()
