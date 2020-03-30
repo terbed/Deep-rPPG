@@ -76,7 +76,7 @@ if __name__ == '__main__':
     testset = Dataset4DFromHDF5(args.data,
                                 labels=(ref_type,),
                                 device=torch.device('cpu'),
-                                start=args.interval[0], end=args.interval[1],
+                                start=start_idx, end=end_idx,
                                 crop=args.crop,
                                 augment=False,
                                 augment_freq=False
