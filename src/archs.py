@@ -403,22 +403,22 @@ class CNNBlock(nn.Module):
 
         self.middle_part = nn.Sequential(
             nn.Dropout(0.15),
-            nn.Conv1d(64, 128, kernel_size=conv_kernel_size, stride=1, padding=padn),
-            nn.BatchNorm1d(128),
+            nn.Conv1d(64, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(64),
             nn.ELU(),
 
             nn.Dropout(0.15),
-            nn.Conv1d(128, 256, kernel_size=conv_kernel_size, stride=1, padding=padn),
-            nn.BatchNorm1d(256),
+            nn.Conv1d(64, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(64),
             nn.ELU(),
 
             nn.Dropout(0.2),
-            nn.Conv1d(256, 128, kernel_size=conv_kernel_size, stride=1, padding=padn),
-            nn.BatchNorm1d(128),
+            nn.Conv1d(64, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(64),
             nn.ELU(),
 
             nn.Dropout(0.3),
-            nn.Conv1d(128, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.Conv1d(64, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
             nn.BatchNorm1d(64),
             nn.ELU(),
 

@@ -95,6 +95,10 @@ if __name__ == '__main__':
         rates3 = db['rates'][:]
         signal3 = db['signal'][:]
 
-    eval_rate_results(ref_arr, ests=(rates, rates2, rates3), sigs=(signal, signal2, signal3),
-                    labels=('RateProbEst-crop-ep28', 'RateProbEst-crop-ep93', 'RateProbEst-full-ep93'))
+    with h5py.File('../outputs/re_cnnlstm_ep35.h5') as db:
+        rates4 = db['rates'][:]
+        signal4 = db['signal'][:]
+
+    eval_rate_results(ref_arr, ests=(rates, rates2, rates3, rates4), sigs=(signal, signal2, signal3, signal4),
+                    labels=('RateProbEst-crop-ep28', 'RateProbEst-crop-ep93', 'RateProbEst-full-ep93', 'CNN-LSTM'))
 
