@@ -69,7 +69,7 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                 with experiment.test():
                     experiment.log_metric("loss", epoch_loss, step=epoch+start_epoch)
                 # Learning Rate scheduler (if epoch loss is on plato)
-                schedulers[0].step(epoch_loss)
+                schedulers[0].step(epoch_loss)  
                 schedulers[1].step(epoch_loss)
             else:
                 train_loss_history.append(epoch_loss)

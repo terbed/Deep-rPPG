@@ -28,7 +28,7 @@ def eval_model(models, testloader, criterion, oname):
 
         with tr.no_grad():
             if len(models) == 1:
-                outputs = model(*inputs).squeeze()
+                outputs = models[0](*inputs).squeeze()
                 # print(f'outputs.shape: {outputs.shape}')
 
                 if criterion is not None:
@@ -223,4 +223,4 @@ if __name__ == '__main__':
     # -------------------------------
     eval_model(models, testloader, criterion=loss_fn, oname=args.ofile_name)
 
-    print('Succefully finished!')
+    print('Successfully finished!')

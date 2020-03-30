@@ -311,33 +311,33 @@ if __name__ == '__main__':
             eval_signal_results_from_h5('eval_data.h5')
 
     else:
-        with h5py.File('../outputs/re_ep28.h5', 'r') as db:
+        with h5py.File('../outputs/test_re_cnnlstm.h5', 'r') as db:
             keys = [key for key in db.keys()]
             print(keys)
 
             refs = db['reference'][:]
             ref_list = np.empty(shape=(len(refs), 1))
             for i in range(len(refs)):
-                ref_list[i] = mode(refs[i, :])[0]
+                ref_list[i] = refs[i]
 
             print(ref_list.shape)
             rates = db['rates'][:]
             print(rates.shape)
             signal = db['signal'][:]
 
-        with h5py.File('../outputs/re_ep93.h5') as db:
-            rates2 = db['rates'][:]
-            signal2 = db['signal'][:]
-
-        with h5py.File('../outputs/re_noncrop_ep93.h5') as db:
-            rates3 = db['rates'][:]
+        # with h5py.File('../outputs/re_ep93.h5') as db:
+        #     rates2 = db['rates'][:]
+        #     signal2 = db['signal'][:]
+        #
+        # with h5py.File('../outputs/re_noncrop_ep93.h5') as db:
+        #     rates3 = db['rates'][:]
             # signal2 = db['signal'][:]
 
-        # plt.figure()
-        # plt.title('output of the first network')
-        # plt.plot(signal, label='ep28')
+        plt.figure()
+        plt.title('output of the first network')
+        plt.plot(signal)
         # plt.plot(signal2 + 4*np.std(signal2), label='ep93')
-        # plt.show()
-        eval_rate_results(ref_list, (rates, rates2, rates3))
+        plt.show()
+        eval_rate_results(ref_list, (rates, ))
 
 

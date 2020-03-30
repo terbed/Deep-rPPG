@@ -430,7 +430,7 @@ class CNNBlock(nn.Module):
         )
 
         self.end_part = nn.Sequential(
-            nn.Dropout(0.5),
+            nn.Dropout(0.3),
             nn.Conv1d(32, 16, kernel_size=1, stride=1, padding=0),
             nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=2, padding=2),
         )
@@ -457,10 +457,18 @@ class RateProbLSTMCNN(nn.Module):
         self.inception_block = InceptionBlock()
         self.cnn_block = CNNBlock()
 
-        self.lstm_layer1 = nn.LSTM(input_size=128, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.3)
+        self.lstm_layer1 = nn.LSTM(input_size=128, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.2)
         self.lstm_layer2 = nn.LSTM(input_size=336, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.5)
 
         self.linear = nn.Linear(80, 2)
+
+    def init_hidden(self, bsz):
+        """
+        Returns initial hidden state and hidden cell values
+        """
+        weight = next(self.parameters())
+        return (weight.new_zeros(self.n_layers, bsz, self.n_hid),
+                weight.new_zeros(self.n_layers, bsz, self.n_hid))
 
     def forward(self, x, h1=None, h2=None):
         # convolution stream
