@@ -155,7 +155,7 @@ if __name__ == '__main__':
                                  crop=args.crop,
                                  augment=False,
                                  augment_freq=False,
-                                 D=166,
+                                 D=167,
                                  ccc=False
                                  )
 
