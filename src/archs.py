@@ -468,24 +468,25 @@ class RateProbLSTMCNN(nn.Module):
         x1 = self.cnn_block(x1)
 
         # lstm stream
+        self.lstm_layer1.flatten_parameters()
         if h1 is None:
             x2, h1 = self.lstm_layer1(x)
         else:
             x2, h1 = self.lstm_layer1(x, h1)
-        self.lstm_layer1.flatten_parameters()
 
         x = tr.cat((x1, x2), dim=2)
         # torch.Size([10, 1, 336])
 
         # last part
+        self.lstm_layer2.flatten_parameters()
         if h2 is None:
             x, h2 = self.lstm_layer2(x)
         else:
             x, h2 = self.lstm_layer2(x, h2)
-        self.lstm_layer2.flatten_parameters()
 
         x = self.linear(x.view(-1, 80))
 
+        x[:, 1] = F.elu(x[:, 1]) + 1.  # sigmas must have positive!
         return x, h1, h2
 
 
