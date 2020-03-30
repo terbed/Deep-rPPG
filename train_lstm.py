@@ -15,7 +15,7 @@ import numpy as np
 tr = torch
 
 
-def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35):
+def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35, start_epoch=0):
     val_loss_history = []
     train_loss_history = []
 
@@ -23,7 +23,7 @@ def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
-        experiment.set_epoch(epoch)
+        experiment.set_epoch(epoch+start_epoch)
 
         # Each epoch has a training and validation phase
         phases = ['train', 'val']
@@ -67,15 +67,15 @@ def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35
             if phase == 'val':
                 val_loss_history.append(epoch_loss)
                 with experiment.test():
-                    experiment.log_metric("loss", epoch_loss, step=epoch)
+                    experiment.log_metric("loss", epoch_loss, step=epoch+start_epoch)
             else:
                 train_loss_history.append(epoch_loss)
                 with experiment.train():
-                    experiment.log_metric("loss", epoch_loss, step=epoch)
+                    experiment.log_metric("loss", epoch_loss, step=epoch+start_epoch)
 
-        experiment.log_epoch_end(epoch)
+        experiment.log_epoch_end(epoch+start_epoch)
         for i, model in enumerate(models):
-            torch.save(model.state_dict(), f'checkpoints/{opath}/model{i}_ep{epoch}.pt')
+            torch.save(model.state_dict(), f'checkpoints/{opath}/model{i}_ep{epoch+start_epoch}.pt')
         print()
 
 
@@ -93,8 +93,9 @@ if __name__ == '__main__':
     parser.add_argument('--logger_name', type=str, help='project name for commet ml experiment')
 
     parser.add_argument('--epochs', type=int, default=60, help='number of epochs')
+    parser.add_argument('--epoch_start', type=int, default=0, help='number of epochs')
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
-    parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
+    parser.add_argument("--pretrained_weights", type=str, nargs='+', help="if specified starts from checkpoint model")
     parser.add_argument("--checkpoint_dir", type=str, help="checkpoints will be saved in this directory")
     parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during generation')
     parser.add_argument('--crop', type=bool, default=False, help='crop baby with yolo (preprocessing step)')
@@ -197,9 +198,13 @@ if __name__ == '__main__':
             models_[i] = tr.nn.DataParallel(models_[i])
 
     # If there are pretrained weights, initialize model
-    if args.pretrained_weights:
-        models_[0].load_state_dict(tr.load(args.pretrained_weights))
+    if len(args.pretrained_weights) == 1:
+        models_[0].load_state_dict(tr.load(args.pretrained_weights[0]))
         print('\nPre-trained weights are loaded for PhysNet!')
+    elif len(args.pretrained_weights) == 2:
+        models_[0].load_state_dict(tr.load(args.pretrained_weights[0]))
+        models_[1].load_state_dict(tr.load(args.pretrained_weights[1]))
+        print('\nPre-trained weights are loaded for each network!')
 
     # Copy model to working device
     for i in range(len(models_)):
@@ -228,7 +233,8 @@ if __name__ == '__main__':
     # -----------------------------
     # Start training
     # -----------------------------
-    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, opath=args.checkpoint_dir, num_epochs=args.epochs)
+    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, opath=args.checkpoint_dir,
+                num_epochs=args.epochs, start_epoch=args.epoch_start)
 
     experiment.end()
 
