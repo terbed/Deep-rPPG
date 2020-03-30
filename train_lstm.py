@@ -15,7 +15,7 @@ import numpy as np
 tr = torch
 
 
-def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35, start_epoch=0):
+def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, num_epochs=35, start_epoch=0):
     val_loss_history = []
     train_loss_history = []
 
@@ -68,6 +68,9 @@ def train_model(models, dataloaders, criterion, optimizers, opath, num_epochs=35
                 val_loss_history.append(epoch_loss)
                 with experiment.test():
                     experiment.log_metric("loss", epoch_loss, step=epoch+start_epoch)
+                # Learning Rate scheduler (if epoch loss is on plato)
+                schedulers[0].step(epoch_loss)
+                schedulers[1].step(epoch_loss)
             else:
                 train_loss_history.append(epoch_loss)
                 with experiment.train():
@@ -227,14 +230,16 @@ if __name__ == '__main__':
     # Initialize optimizer
     # ----------------------------
     opts = []
+    schedulers_ = []
     for i, model in enumerate(models_):
         opts.append(optim.AdamW(model.parameters(), lr=args.lr[i]))
+        schedulers_.append(optim.lr_scheduler.ReduceLROnPlateau(opts[i], verbose=True))
 
     # -----------------------------
     # Start training
     # -----------------------------
-    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, opath=args.checkpoint_dir,
-                num_epochs=args.epochs, start_epoch=args.epoch_start)
+    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, schedulers=schedulers_,
+                opath=args.checkpoint_dir, num_epochs=args.epochs, start_epoch=args.epoch_start)
 
     experiment.end()
 
