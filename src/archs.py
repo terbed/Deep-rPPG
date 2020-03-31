@@ -542,4 +542,5 @@ if __name__ == '__main__':
         out, _, _ = model(x)
         print(out.shape)
 
+
     rateproblstmcnn_test()
