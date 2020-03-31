@@ -396,24 +396,24 @@ class CNNBlock(nn.Module):
 
             nn.Dropout(0.1),
             nn.Conv1d(32, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
-            nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=2, padding=2),
+            nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=1, padding=2),
             nn.BatchNorm1d(64),
             nn.ELU()
         )
 
         self.middle_part = nn.Sequential(
             nn.Dropout(0.15),
-            nn.Conv1d(64, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
-            nn.BatchNorm1d(64),
+            nn.Conv1d(64, 128, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(128),
             nn.ELU(),
 
             nn.Dropout(0.15),
-            nn.Conv1d(64, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
-            nn.BatchNorm1d(64),
+            nn.Conv1d(128, 128, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.BatchNorm1d(128),
             nn.ELU(),
 
             nn.Dropout(0.2),
-            nn.Conv1d(64, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
+            nn.Conv1d(128, 64, kernel_size=conv_kernel_size, stride=1, padding=padn),
             nn.BatchNorm1d(64),
             nn.ELU(),
 
@@ -431,8 +431,10 @@ class CNNBlock(nn.Module):
 
         self.end_part = nn.Sequential(
             nn.Dropout(0.3),
-            nn.Conv1d(32, 16, kernel_size=1, stride=1, padding=0),
-            nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=2, padding=2),
+            nn.Conv1d(32, 1, kernel_size=1, stride=1, padding=0),
+            nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=1, padding=2),
+            nn.BatchNorm1d(1),
+            nn.ELU()
         )
 
     def forward(self, x):
@@ -440,10 +442,7 @@ class CNNBlock(nn.Module):
         x = self.middle_part(x)
         x = self.end_part(x)
 
-        N, C, L = x.shape
-        x = x.view(N, 1, C*L)
-
-        # output shape [1, 1, 256]
+        # output shape [1, 1, 64]
         return x
 
 
@@ -458,7 +457,7 @@ class RateProbLSTMCNN(nn.Module):
         self.cnn_block = CNNBlock()
 
         self.lstm_layer1 = nn.LSTM(input_size=128, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.2)
-        self.lstm_layer2 = nn.LSTM(input_size=336, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.5)
+        self.lstm_layer2 = nn.LSTM(input_size=144, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.5)
 
         self.linear = nn.Linear(80, 2)
 
@@ -470,7 +469,7 @@ class RateProbLSTMCNN(nn.Module):
         return (weight.new_zeros(self.n_layers, bsz, self.n_hid),
                 weight.new_zeros(self.n_layers, bsz, self.n_hid))
 
-    def forward(self, x, h1=None, h2=None):
+    def forward(self, x, h1=None, h2=None, is_inf=False):
         # convolution stream
         x1 = self.inception_block(x)
         x1 = self.cnn_block(x1)
@@ -483,7 +482,7 @@ class RateProbLSTMCNN(nn.Module):
             x2, h1 = self.lstm_layer1(x, h1)
 
         x = tr.cat((x1, x2), dim=2)
-        # torch.Size([10, 1, 336])
+        # torch.Size([8, 1, 144])
 
         # last part
         self.lstm_layer2.flatten_parameters()
@@ -492,6 +491,8 @@ class RateProbLSTMCNN(nn.Module):
         else:
             x, h2 = self.lstm_layer2(x, h2)
 
+        if not is_inf:
+            x = x[-1, :, :]     # use the output of the last step
         x = self.linear(x.view(-1, 80))
 
         x[:, 1] = F.elu(x[:, 1]) + 1.  # sigmas must have positive!
@@ -537,7 +538,7 @@ if __name__ == '__main__':
 
     def rateproblstmcnn_test():
         model = RateProbLSTMCNN()
-        x = tr.randn(10, 1, 128)
+        x = tr.randn(8, 1, 128)
         out, _, _ = model(x)
         print(out.shape)
 

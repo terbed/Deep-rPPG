@@ -39,7 +39,9 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
             # Iterate over data.
             for inputs, targets in dataloaders[phase]:
                 inputs = inputs.to(device)
-                targets = targets.to(device)
+                targets = targets.to(device).view(-1, 1)
+                # use the last step
+                target = targets[-1, 0]
 
                 # zero the parameter gradients
                 for optimizer in optimizers:
@@ -51,8 +53,8 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     # Signal extraction
                     signals = models[0](inputs).view(-1, 1, 128)
                     # Rate estimation
-                    rates, _, _ = models[1](signals)
-                    loss = criterion(rates.view(-1, 1, 2), targets.view(-1, 1))
+                    rate, _, _ = models[1](signals)
+                    loss = criterion(rate.view(1, 1, 2), target)
                     if phase == 'train':
                         loss.backward()
                         optimizers[0].step()
