@@ -41,7 +41,7 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                 inputs = inputs.to(device)
                 targets = targets.to(device).view(-1, 1)
                 # use the last step
-                target = targets[-1, 0]
+                target = targets[-1, 0].view(1, 1)
 
                 # zero the parameter gradients
                 for optimizer in optimizers:
@@ -53,8 +53,9 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     # Signal extraction
                     signals = models[0](inputs).view(-1, 1, 128)
                     # Rate estimation
-                    rate, _, _ = models[1](signals)
-                    print(f'Shape of rate: {rate.shape}')
+                    rates, _, _ = models[1](signals)
+                    rate = rates[-1, :]
+                    print(f'\nShape of rate: {rate.shape}')
                     loss = criterion(rate.view(1, 1, 2), target)
                     if phase == 'train':
                         loss.backward()

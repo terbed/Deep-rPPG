@@ -469,7 +469,7 @@ class RateProbLSTMCNN(nn.Module):
         return (weight.new_zeros(self.n_layers, bsz, self.n_hid),
                 weight.new_zeros(self.n_layers, bsz, self.n_hid))
 
-    def forward(self, x, h1=None, h2=None, is_inf=False):
+    def forward(self, x, h1=None, h2=None):
         # convolution stream
         x1 = self.inception_block(x)
         x1 = self.cnn_block(x1)
@@ -491,8 +491,6 @@ class RateProbLSTMCNN(nn.Module):
         else:
             x, h2 = self.lstm_layer2(x, h2)
 
-        if not is_inf:
-            x = x[-1, :, :]     # use the output of the last step
         x = self.linear(x.view(-1, 80))
 
         x[:, 1] = F.elu(x[:, 1]) + 1.  # sigmas must have positive!
@@ -538,7 +536,7 @@ if __name__ == '__main__':
 
     def rateproblstmcnn_test():
         model = RateProbLSTMCNN()
-        x = tr.randn(8, 1, 128)
+        x = tr.randn(80, 1, 128)
         out, _, _ = model(x)
         print(out.shape)
 
