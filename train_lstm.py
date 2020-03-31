@@ -54,8 +54,7 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     signals = models[0](inputs).view(-1, 1, 128)
                     # Rate estimation
                     rates, _, _ = models[1](signals)
-                    rate = rates[-1, :]
-                    print(f'\nShape of rate: {rate.shape}')
+                    rate = rates[-1, :]    # use only the last step
                     loss = criterion(rate.view(1, 1, 2), target)
                     if phase == 'train':
                         loss.backward()
