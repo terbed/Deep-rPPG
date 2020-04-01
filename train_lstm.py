@@ -44,8 +44,8 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                 target = targets[-1, 0].view(1, 1)
 
                 # zero the parameter gradients
-                for optimizer in optimizers:
-                    optimizer.zero_grad()
+                for i in range(len(optimizers)):
+                    optimizers[i].zero_grad()
 
                 # forward
                 # track history if only in train
@@ -80,8 +80,8 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     experiment.log_metric("loss", epoch_loss, step=epoch+start_epoch)
 
         experiment.log_epoch_end(epoch+start_epoch)
-        for i, model in enumerate(models):
-            torch.save(model.state_dict(), f'checkpoints/{opath}/model{i}_ep{epoch+start_epoch}.pt')
+        for i in range(len(models)):
+            torch.save(models[i].state_dict(), f'checkpoints/{opath}/model{i}_ep{epoch+start_epoch}.pt')
         print()
 
 
@@ -234,8 +234,8 @@ if __name__ == '__main__':
     # ----------------------------
     opts = []
     schedulers_ = []
-    for i, model in enumerate(models_):
-        opts.append(optim.AdamW(model.parameters(), lr=args.lr[i]))
+    for i in range(len(models_)):
+        opts.append(optim.AdamW(models_[i].parameters(), lr=args.lr[i]))
         schedulers_.append(optim.lr_scheduler.ReduceLROnPlateau(opts[i], verbose=True))
 
     # -----------------------------

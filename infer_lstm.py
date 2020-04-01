@@ -26,7 +26,7 @@ def eval_model(models, testloader, oname, device):
             # Signal extractor
             signals = models[0](inputs).view(-1, 1, 128)
             # Rate estimator
-            rates, h1, h2 = models[1](signals, h1, h2, is_inf=True)
+            rates, h1, h2 = models[1](signals, h1, h2)
 
             rates = rates.view(-1, 2)
             targets = targets.squeeze()

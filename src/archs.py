@@ -366,8 +366,8 @@ class InceptionBlock(nn.Module):
 
     def forward(self, x):
         out = []
-        for conv in self.conv_list:
-            out.append(conv(x))
+        for i in range(len(self.conv_list)):
+            out.append(self.conv_list[i](x))
 
         out = tr.cat(out, dim=1)
         return out
