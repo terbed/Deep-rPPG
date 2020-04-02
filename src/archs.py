@@ -353,7 +353,7 @@ class RateEst(nn.Module):
 # --------------------------------------------------------------------------------------------------------------------
 class InceptionBlock(nn.Module):
     """
-    Performs 5 parallel convolution with different kernel size and fed results in channels
+    Performs 5 parallel convolution with different kernel sizes and feed results in 5 channels
     """
     def __init__(self):
         super().__init__()

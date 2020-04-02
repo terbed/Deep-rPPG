@@ -71,9 +71,11 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                 val_loss_history.append(epoch_loss)
                 with experiment.test():
                     experiment.log_metric("loss", epoch_loss, step=epoch+start_epoch)
-                # Learning Rate scheduler (if epoch loss is on plato)
-                schedulers[0].step(epoch_loss)  
-                schedulers[1].step(epoch_loss)
+
+                if schedulers is not None:
+                    # Learning Rate scheduler (if epoch loss is on plato)
+                    schedulers[0].step(epoch_loss)
+                    schedulers[1].step(epoch_loss)
             else:
                 train_loss_history.append(epoch_loss)
                 with experiment.train():
@@ -241,7 +243,7 @@ if __name__ == '__main__':
     # -----------------------------
     # Start training
     # -----------------------------
-    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, schedulers=schedulers_,
+    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, schedulers=None,
                 opath=args.checkpoint_dir, num_epochs=args.epochs, start_epoch=args.epoch_start)
 
     experiment.end()

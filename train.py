@@ -290,7 +290,7 @@ if __name__ == '__main__':
     # ----------------------------
     opts = []
     for i, model in enumerate(models):
-        opts.append(optim.AdamW(model.parameters(), lr=args.lr[i]))
+        opts.append(optim.AdamW(models[i].parameters(), lr=args.lr[i]))
 
     # -----------------------------
     # Start training
