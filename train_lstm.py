@@ -29,6 +29,8 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
         phases = ['train', 'val']
         for phase in phases:
             running_loss = 0.0
+            h1 = h2 = None
+
             if phase == 'train':
                 for i in range(len(models)):
                     models[i].train()  # Set model to training mode -> activate droput layers and batch norm
@@ -41,7 +43,7 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                 inputs = inputs.to(device)
                 targets = targets.to(device).view(-1, 1)
                 # use the last step
-                target = targets[-1, 0].view(1, 1)
+                # target = targets[-1, 0].view(1, 1)
 
                 # zero the parameter gradients
                 for i in range(len(optimizers)):
@@ -53,9 +55,9 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     # Signal extraction
                     signals = models[0](inputs).view(-1, 1, 128)
                     # Rate estimation
-                    rates, _, _ = models[1](signals)
-                    rate = rates[-1, :]    # use only the last step
-                    loss = criterion(rate.view(1, 1, 2), target)
+                    rates, h1, h2 = models[1](signals, h1, h2)
+
+                    loss = criterion(rates.view(-1, 1, 2), targets)
                     if phase == 'train':
                         loss.backward()
                         optimizers[0].step()
@@ -238,12 +240,12 @@ if __name__ == '__main__':
     schedulers_ = []
     for i in range(len(models_)):
         opts.append(optim.AdamW(models_[i].parameters(), lr=args.lr[i]))
-        schedulers_.append(optim.lr_scheduler.ReduceLROnPlateau(opts[i], verbose=True))
+        schedulers_.append(optim.lr_scheduler.ReduceLROnPlateau(opts[i], factor=0.5, verbose=True, patience=20))
 
     # -----------------------------
     # Start training
     # -----------------------------
-    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, schedulers=None,
+    train_model(models_, dataloaders_, criterion=loss_fn, optimizers=opts, schedulers=schedulers_,
                 opath=args.checkpoint_dir, num_epochs=args.epochs, start_epoch=args.epoch_start)
 
     experiment.end()

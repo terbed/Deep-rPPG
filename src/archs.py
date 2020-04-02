@@ -430,10 +430,10 @@ class CNNBlock(nn.Module):
         )
 
         self.end_part = nn.Sequential(
-            nn.Dropout(0.3),
-            nn.Conv1d(32, 1, kernel_size=1, stride=1, padding=0),
+            nn.Dropout(0.35),
+            nn.Conv1d(32, 5, kernel_size=1, stride=1, padding=0),
             nn.MaxPool1d(kernel_size=max_pool_kernel_size, stride=1, padding=2),
-            nn.BatchNorm1d(1),
+            nn.BatchNorm1d(5),
             nn.ELU()
         )
 
@@ -441,8 +441,11 @@ class CNNBlock(nn.Module):
         x = self.first_part(x)
         x = self.middle_part(x)
         x = self.end_part(x)
+        # output shape [1, 5, 64]
 
-        # output shape [1, 1, 64]
+        N, C, L = x.shape
+        x = x.view(N, 1, C*L)
+        # [1, 1, 320]
         return x
 
 
@@ -457,7 +460,7 @@ class RateProbLSTMCNN(nn.Module):
         self.cnn_block = CNNBlock()
 
         self.lstm_layer1 = nn.LSTM(input_size=128, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.2)
-        self.lstm_layer2 = nn.LSTM(input_size=144, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.5)
+        self.lstm_layer2 = nn.LSTM(input_size=400, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.5)
 
         self.linear = nn.Linear(80, 2)
 
@@ -482,7 +485,7 @@ class RateProbLSTMCNN(nn.Module):
             x2, h1 = self.lstm_layer1(x, h1)
 
         x = tr.cat((x1, x2), dim=2)
-        # torch.Size([8, 1, 144])
+        # torch.Size([8, 1, 400])
 
         # last part
         self.lstm_layer2.flatten_parameters()
