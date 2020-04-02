@@ -241,7 +241,7 @@ if __name__ == '__main__':
     schedulers_ = []
     for i in range(len(models_)):
         opts.append(optim.AdamW(models_[i].parameters(), lr=args.lr[i]))
-        schedulers_.append(optim.lr_scheduler.ReduceLROnPlateau(opts[i], factor=0.5, verbose=True, patience=20))
+        schedulers_.append(optim.lr_scheduler.ReduceLROnPlateau(opts[i], factor=0.5, verbose=True, patience=10))
 
     # -----------------------------
     # Start training
