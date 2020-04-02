@@ -499,9 +499,9 @@ class RateProbLSTMCNN(nn.Module):
         x[:, 1] = F.elu(x[:, 1]) + 1.  # sigmas must have positive!
 
         for h in h1:
-            h.detach()
+            h.detach_()
         for h in h2:
-            h.detach()
+            h.detach_()
 
         return x, h1, h2
 
