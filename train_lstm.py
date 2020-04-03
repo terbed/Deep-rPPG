@@ -42,8 +42,6 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
             for inputs, targets in dataloaders[phase]:
                 inputs = inputs.to(device)
                 targets = targets.to(device).view(-1, 1)
-                # use the last step
-                target = targets[-1, 0].view(1, 1)
 
                 # zero the parameter gradients
                 for i in range(len(optimizers)):
@@ -56,9 +54,12 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     signals = models[0](inputs).view(-1, 1, 128)
                     # Rate estimation
                     rates, _, _ = models[1](signals)
-                    rate = rates[-1, :]
 
-                    loss = criterion(rate.view(1, 1, 2), target)
+                    if isinstance(criterion, tr.nn.L1Loss):
+                        loss = criterion(rates, targets)
+                    else:   # In this case custom loss functions
+                        loss = criterion(rates.view(-1, 1, 2), targets)
+
                     if phase == 'train':
                         loss.backward()
                         optimizers[0].step()
@@ -97,7 +98,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('model', type=str, nargs='+', help='DeepPhys, PhysNet, RateProbEst')
-    parser.add_argument('--loss', type=str, help='L1, MSE, NegPea, SNR, Gauss, Laplace')
+    parser.add_argument('--loss', type=str, help='L1, Gauss, Laplace')
     parser.add_argument('--lr', type=float, nargs='+', default=1e-4, help='learning rate')
     parser.add_argument('--data', type=str, help='path to .hdf5 file containing data')
     parser.add_argument('--intervals', type=int, nargs='+', help='indices: train_start, train_end, val_start, val_end, shift_idx')
@@ -195,9 +196,26 @@ if __name__ == '__main__':
     print('\nDataLoaders successfully constructed!')
 
     # --------------------------
+    # Define loss function
+    # ---------------------------
+    # 'L1, MSE, NegPea, SNR, Gauss, Laplace'
+    loss_fn = None
+    n_out = 2
+    if args.loss == 'Gauss':
+        loss_fn = GaussLoss()
+    elif args.loss == 'Laplace':
+        loss_fn = LaplaceLoss()
+    elif args.loss == 'L1':
+        loss_fn = tr.nn.L1Loss()
+        n_out = 1
+    else:
+        print('\nError! No such loss function. Choose from: Gauss, Laplace')
+        exit(666)
+
+    # --------------------------
     # Load model
     # --------------------------
-    models_ = [PhysNetED(), RateProbLSTMCNN()]
+    models_ = [PhysNetED(), RateProbLSTMCNN(n_out)]
 
     # ----------------------------------
     # Set up training
@@ -220,19 +238,6 @@ if __name__ == '__main__':
     # Copy model to working device
     for i in range(len(models_)):
         models_[i] = models_[i].to(device)
-
-    # --------------------------
-    # Define loss function
-    # ---------------------------
-    # 'L1, MSE, NegPea, SNR, Gauss, Laplace'
-    loss_fn = None
-    if args.loss == 'Gauss':
-        loss_fn = GaussLoss()
-    elif args.loss == 'Laplace':
-        loss_fn = LaplaceLoss()
-    else:
-        print('\nError! No such loss function. Choose from: Gauss, Laplace')
-        exit(666)
 
     # ----------------------------
     # Initialize optimizer

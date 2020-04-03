@@ -450,11 +450,15 @@ class CNNBlock(nn.Module):
 
 
 class RateProbLSTMCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, n_out=2):
+        """
+        :param n_out: number of estimated parameters, in cas of prob. output layer 2, or single output layer n_out=1
+        """
         super().__init__()
 
         self.n_layers = 2
         self.n_hid = 80
+        self.n_out = n_out
 
         self.inception_block = InceptionBlock()
         self.cnn_block = CNNBlock()
@@ -462,7 +466,7 @@ class RateProbLSTMCNN(nn.Module):
         self.lstm_layer1 = nn.LSTM(input_size=128, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.2)
         self.lstm_layer2 = nn.LSTM(input_size=400, hidden_size=self.n_hid, num_layers=self.n_layers, dropout=0.5)
 
-        self.linear = nn.Linear(80, 2)
+        self.linear = nn.Linear(80, self.n_out)
 
     def init_hidden(self, bsz):
         """
@@ -496,7 +500,8 @@ class RateProbLSTMCNN(nn.Module):
 
         x = self.linear(x.view(-1, 80))
 
-        x[:, 1] = F.elu(x[:, 1]) + 1.  # sigmas must have positive!
+        if self.n_out == 2:
+            x[:, 1] = F.elu(x[:, 1]) + 1.  # sigmas must have positive!
 
         for h in h1:
             h.detach_()

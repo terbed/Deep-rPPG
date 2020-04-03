@@ -72,33 +72,44 @@ def eval_rate_results(ref, ests: tuple, sigs: tuple, labels:tuple):
 
 
 if __name__ == '__main__':
-    with h5py.File('../outputs/re_ep28.h5', 'r') as db:
-        keys = [key for key in db.keys()]
-        print(keys)
+    # with h5py.File('../outputs/re_ep28.h5', 'r') as db:
+    #     keys = [key for key in db.keys()]
+    #     print(keys)
+    #
+    #     refs = db['reference'][:]
+    #     ref_arr = np.empty(shape=(len(refs), 1))
+    #     for i in range(len(refs)):
+    #         ref_arr[i] = np.mean(refs[i])
+    #
+    #     print(f'Reference shape: {ref_arr.shape}')
+    #     rates = db['rates'][:]
+    #     print(rates.shape)
+    #
+    #     signal = db['signal'][:]
+    #
+    # with h5py.File('../outputs/re_ep93.h5') as db:
+    #     rates2 = db['rates'][:]
+    #     signal2 = db['signal'][:]
+    #
+    # with h5py.File('../outputs/re_noncrop_ep93.h5') as db:
+    #     rates3 = db['rates'][:]
+    #     signal3 = db['signal'][:]
+    #
+    # with h5py.File('../outputs/re_cnnlstm_ep35.h5') as db:
+    #     rates4 = db['rates'][:]
+    #     signal4 = db['signal'][:]
 
+    # eval_rate_results(ref_arr, ests=(rates, rates2, rates3, rates4), sigs=(signal, signal2, signal3, signal4),
+    #                 labels=('RateProbEst-crop-ep28', 'RateProbEst-crop-ep93', 'RateProbEst-full-ep93', 'CNN-LSTM'))
+
+    with h5py.File('../outputs/re_cnnlstm_laplace.h5') as db:
         refs = db['reference'][:]
-        ref_arr = np.empty(shape=(len(refs), 1))
-        for i in range(len(refs)):
-            ref_arr[i] = np.mean(refs[i])
+        rates_lap = db['rates'][:]
+        signal_lap = db['signal'][:]
 
-        print(f'Reference shape: {ref_arr.shape}')
-        rates = db['rates'][:]
-        print(rates.shape)
+    with h5py.File('../outputs/re_cnnlstm_gauss.h5') as db:
+        rates_gau = db['rates'][:]
+        signal_gau = db['signal'][:]
 
-        signal = db['signal'][:]
-
-    with h5py.File('../outputs/re_ep93.h5') as db:
-        rates2 = db['rates'][:]
-        signal2 = db['signal'][:]
-
-    with h5py.File('../outputs/re_noncrop_ep93.h5') as db:
-        rates3 = db['rates'][:]
-        signal3 = db['signal'][:]
-
-    with h5py.File('../outputs/re_cnnlstm_ep35.h5') as db:
-        rates4 = db['rates'][:]
-        signal4 = db['signal'][:]
-
-    eval_rate_results(ref_arr, ests=(rates, rates2, rates3, rates4), sigs=(signal, signal2, signal3, signal4),
-                    labels=('RateProbEst-crop-ep28', 'RateProbEst-crop-ep93', 'RateProbEst-full-ep93', 'CNN-LSTM'))
-
+    eval_rate_results(refs, ests=(rates_lap, rates_gau), sigs=(signal_lap, signal_gau),
+                      labels=('Laplace loss', 'Gauss loss'))
