@@ -58,7 +58,7 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     # use only the last step at training
                     rates = rates[-1, :]
                     targets = targets[-1]
-                    if isinstance(criterion, tr.nn.L1Loss):
+                    if isinstance(criterion, tr.nn.L1Loss) or isinstance(criterion, tr.nn.MSELoss):
                         loss = criterion(rates, targets)
                     else:   # In this case custom loss functions
                         loss = criterion(rates.view(-1, 1, 2), targets.view(-1, 1))
@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('model', type=str, nargs='+', help='DeepPhys, PhysNet, RateProbEst')
-    parser.add_argument('--loss', type=str, help='L1, Gauss, Laplace')
+    parser.add_argument('--loss', type=str, help='L1, MSE, Gauss, Laplace')
     parser.add_argument('--lr', type=float, nargs='+', default=1e-4, help='learning rate')
     parser.add_argument('--data', type=str, help='path to .hdf5 file containing data')
     parser.add_argument('--intervals', type=int, nargs='+', help='indices: train_start, train_end, val_start, val_end, shift_idx')
@@ -210,6 +210,9 @@ if __name__ == '__main__':
         loss_fn = LaplaceLoss()
     elif args.loss == 'L1':
         loss_fn = tr.nn.L1Loss()
+        n_out = 1
+    elif args.loss == 'MSE':
+        loss_fn = tr.nn.MSELoss()
         n_out = 1
     else:
         print('\nError! No such loss function. Choose from: Gauss, Laplace')
