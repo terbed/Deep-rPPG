@@ -4,7 +4,7 @@ import h5py
 from scipy.stats import pearsonr
 
 
-def eval_rate_results(ref, ests: tuple, sigs: tuple, labels:tuple):
+def eval_rate_results(ref, ests: tuple, sigs: tuple, labels: tuple):
     """
     :param ref: reference pulse rate values
     :param ests: tuple of network probability estimates
@@ -44,7 +44,7 @@ def eval_rate_results(ref, ests: tuple, sigs: tuple, labels:tuple):
 
     est_list = np.empty((ests[0].shape[0], n_est), dtype=float)
     for i, est in enumerate(ests):
-        est_list[:, i] = est[:, 0]*60.  # use the expected value statistics
+        est_list[:, i] = est[:, 0]*60.    # use the expected value statistics
 
     # remove 6.2 to 8 hours from arrays since these parts are corrupted
     # start_rmidx = int(6.2*60*60)
@@ -91,9 +91,14 @@ if __name__ == '__main__':
     #     rates2 = db['rates'][:]
     #     signal2 = db['signal'][:]
     #
-    # with h5py.File('../outputs/re_noncrop_ep93.h5') as db:
-    #     rates3 = db['rates'][:]
-    #     signal3 = db['signal'][:]
+    with h5py.File('../outputs/re_noncrop_ep93.h5') as db:
+        refs = db['reference'][:]
+        rates3 = db['rates'][:]
+        signal3 = db['signal'][:]
+
+    with h5py.File('../outputs/re_cnnlstm_rate.h5') as db:
+        rates_rate = db['rates'][:]
+        signal_rate = db['signal'][:]
     #
     # with h5py.File('../outputs/re_cnnlstm_ep35.h5') as db:
     #     rates4 = db['rates'][:]
@@ -101,15 +106,15 @@ if __name__ == '__main__':
 
     # eval_rate_results(ref_arr, ests=(rates, rates2, rates3, rates4), sigs=(signal, signal2, signal3, signal4),
     #                 labels=('RateProbEst-crop-ep28', 'RateProbEst-crop-ep93', 'RateProbEst-full-ep93', 'CNN-LSTM'))
-
-    with h5py.File('../outputs/re_cnnlstm_laplace.h5') as db:
-        refs = db['reference'][:]
-        rates_lap = db['rates'][:]
-        signal_lap = db['signal'][:]
-
-    with h5py.File('../outputs/re_cnnlstm_gauss.h5') as db:
-        rates_gau = db['rates'][:]
-        signal_gau = db['signal'][:]
-
-    eval_rate_results(refs, ests=(rates_lap, rates_gau), sigs=(signal_lap, signal_gau),
-                      labels=('Laplace loss', 'Gauss loss'))
+    #
+    # with h5py.File('../outputs/re_cnnlstm_laplace.h5') as db:
+    #     refs = db['reference'][:]
+    #     rates_lap = db['rates'][:]
+    #     signal_lap = db['signal'][:]
+    #
+    # with h5py.File('../outputs/re_cnnlstm_gauss.h5') as db:
+    #     rates_gau = db['rates'][:]
+    #     signal_gau = db['signal'][:]
+    #
+    eval_rate_results(refs, ests=(rates3, rates_rate), sigs=(signal3, signal_rate),
+                      labels=('CNN', 'CNN+LSTM'))

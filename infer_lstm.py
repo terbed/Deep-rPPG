@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 tr = torch
 
 
-def eval_model(models, testloader, oname, device):
+def eval_model(models, testloader, oname, out_size, device):
     total_loss = []
     result = []
     signal = []
@@ -28,7 +28,6 @@ def eval_model(models, testloader, oname, device):
             # Rate estimator
             rates, h1, h2 = models[1](signals, h1, h2)
 
-            rates = rates.view(-1, 2)
             targets = targets.squeeze()
 
         # print(f'in inference targets.shape: {targets.shape}')

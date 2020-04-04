@@ -549,7 +549,7 @@ if __name__ == '__main__':
     # cnnblock_test()
 
     def rateproblstmcnn_test():
-        model = RateProbLSTMCNN()
+        model = RateProbLSTMCNN(1)
         x = tr.randn(80, 1, 128)
         out, _, _ = model(x)
         print(out.shape)
