@@ -55,6 +55,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, help='path to benchmark .hdf5 file containing data')
+    parser.add_argument('--n_out', type=int, default=2, help='Number of output parameters of tha rate network')
     parser.add_argument('--interval', type=int, nargs='+',
                         help='indices: val_start, val_end, shift_idx; if not given -> whole dataset')
     parser.add_argument("--weights", type=str, nargs='+', help="model weight paths")
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     # --------------------------
     # Load model
     # --------------------------
-    models_ = [PhysNetED(), RateProbLSTMCNN()]
+    models_ = [PhysNetED(), RateProbLSTMCNN(args.n_out)]
 
     # ----------------------------------
     # Set up training
