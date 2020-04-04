@@ -55,10 +55,13 @@ def train_model(models, dataloaders, criterion, optimizers, schedulers, opath, n
                     # Rate estimation
                     rates, _, _ = models[1](signals)
 
+                    # use only the last step at training
+                    rates = rates[-1, :]
+                    targets = targets[-1]
                     if isinstance(criterion, tr.nn.L1Loss):
                         loss = criterion(rates, targets)
                     else:   # In this case custom loss functions
-                        loss = criterion(rates.view(-1, 1, 2), targets)
+                        loss = criterion(rates.view(-1, 1, 2), targets.view(-1, 1))
 
                     if phase == 'train':
                         loss.backward()
