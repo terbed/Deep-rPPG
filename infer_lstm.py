@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 tr = torch
 
 
-def eval_model(models, testloader, oname, out_size, device):
+def eval_model(models, testloader, oname, device):
     total_loss = []
     result = []
     signal = []
