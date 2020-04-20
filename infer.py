@@ -140,7 +140,7 @@ if __name__ == '__main__':
                                     augment_freq=False)
 
     elif args.model[0] == 'DeepPhys':
-        phase_shift = args.intervals[4] if len(args.intervals) == 5 else 0            # init phase shift parameter
+        phase_shift = args.interval[4] if len(args.interval) == 5 else 0            # init phase shift parameter
 
         testset = DatasetDeepPhysHDF5(args.data,
                                       device=loader_device,
