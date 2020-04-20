@@ -1,2 +1,2 @@
 /yolo/weights/*.pth
-/evals/
+/evals/*
