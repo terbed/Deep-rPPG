@@ -28,7 +28,7 @@ def eval_model(models, testloader, criterion, oname):
 
         with tr.no_grad():
             if len(models) == 1:
-                outputs = models[0](*inputs).squeeze()
+                outputs = models[0](inputs).squeeze()
                 # print(f'outputs.shape: {outputs.shape}')
 
                 if criterion is not None:
