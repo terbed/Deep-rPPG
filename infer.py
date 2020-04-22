@@ -39,7 +39,7 @@ def eval_model(models, testloader, criterion, oname):
                 result.extend(outputs.data.cpu().numpy().flatten().tolist())
                 # print(f'List length: {len(result)}')
             elif len(models) == 2:
-                signals = models[0](*inputs).view(-1, 1, 128)
+                signals = models[0](inputs).view(-1, 1, 128)
                 n_batch = signals.shape[0]
                 if n_batch > 1:
                     rates = models[1](signals).view(-1, 2)
