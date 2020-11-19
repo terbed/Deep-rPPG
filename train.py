@@ -125,7 +125,7 @@ if __name__ == '__main__':
                 exit(0)
 
     # Add the following code anywhere in your machine learning file
-    experiment = Experiment(api_key="hs2nruoKow2CnUKisoeHccvh7", project_name=args.logger_name, workspace="terbed")
+    experiment = Experiment(api_key="", project_name=args.logger_name, workspace="")
 
     hyper_params = {
         "model": args.model,
