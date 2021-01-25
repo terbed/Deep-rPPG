@@ -28,6 +28,9 @@ In case of some external condition, the efficacy of remote sensing the vital sig
 Finally, the feasibility of rPPG DNN applications in a resource-limited environment is inspected on an NVIDIA Jetson Nano embedded system. The results demonstrate that the implemented DNNs are capable of (quasi) real-time inference even on limited hardware.
 
 
+# Cite as
+Dániel Terbe. (2021, January 25). Camera-Based Pulse Monitoring Using Deep Learning Tools. 
+
 ## Special application on neonates
 A custom YOLO network is used to crop the baby as a preprocessing step.
 This network was created based on this repo: [https://github.com/eriklindernoren/PyTorch-YOLOv3][PyTorch-YOLOv3]
